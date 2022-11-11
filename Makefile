@@ -10,8 +10,14 @@ all: $(FILE).cpp
 genmsvc: $(FILE).cpp
 	cl /EHsc /openmp:llvm /O2 /Ot /std:c++17 /arch:AVX2 Application.cpp
 
+windows: $(FILE).cpp
+	$(CXX) $(CXXFLAGS) $(FILE).cpp $(WFLAGS) -o app
+
 run: app
 	./app
+
+run_windows: app.exe
+	./app.exe
 
 install:
 	sudo apt-get install build-essential libglu1-mesa-dev libpng-dev libmpich12
