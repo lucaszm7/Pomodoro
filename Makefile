@@ -4,10 +4,12 @@ LFLAGS = -lX11 -lGL -lpthread -lpng -lstdc++fs -std=c++17 -O3 -mavx2
 WFLAGS = -luser32 -lgdi32 -lopengl32 -lgdiplus -lShlwapi -ldwmapi -lstdc++fs -static -std=c++17 -O3 -mavx2 
 FILE = main
 
-all: $(FILE).cpp
+all: $(FILE).cpp linux
+
+linux: $(FILE).cpp
 	$(CXX) $(CXXFLAGS) $(FILE).cpp $(LFLAGS) -o app
 
-genmsvc: $(FILE).cpp
+msvc: $(FILE).cpp
 	cl /EHsc /openmp:llvm /O2 /Ot /std:c++17 /arch:AVX2 Application.cpp
 
 windows: $(FILE).cpp
