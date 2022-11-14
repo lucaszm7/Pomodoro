@@ -37,18 +37,21 @@ struct Timer
     }
 };
 
-std::vector<float> RandList(float start, float end, unsigned int size)
+template<typename T>
+std::vector<T> RandList(T start, T end, unsigned int size)
 {
-    std::vector<float> result;
+    std::vector<T> result;
     result.reserve(size);
     for(int i = 0; i < size; ++i)
     {
-        result.emplace_back(rand(start, end));
+        result.emplace_back(rand<T>(start, end));
     }
+    return &result;
 }
 
-inline float rand(float start, float end)
+template <typename T>
+inline T rand(T start, T end)
 {
-    return (start + static_cast<float> (std::rand()) / (static_cast <float> (RAND_MAX / (end - start))));
+    return (start + static_cast<T> (std::rand()) / (static_cast <T> (RAND_MAX / (end - start))));
 }
 
