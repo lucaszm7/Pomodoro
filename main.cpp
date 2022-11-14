@@ -1,6 +1,9 @@
 #define OLC_PGE_APPLICATION 
 #include "olcPixelGameEngine.h"
 
+#include <iostream>
+#include "utils.hpp"
+
 class Example : public olc::PixelGameEngine
 {
 public:
@@ -101,10 +104,10 @@ int main()
 {
 	std::vector<Bin> containers_next;
 	std::vector<Bin> containers_first;
-	std::vector<unsigned int> items {5,4,3,6,3,1,6,3,9};
+	std::vector<unsigned int> items = RandList<unsigned int>(1, 10, 20);
 
-	containers_next.emplace_back(10);
-	containers_first.emplace_back(10);
+	containers_next.emplace_back();
+	containers_first.emplace_back();
 
 	first_fit(containers_first, items);
 	next_fit(containers_next, items);
