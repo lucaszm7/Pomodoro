@@ -1,3 +1,7 @@
 /.vscode
+.vscode/
+/logs
 /*.exe
 /app
+*.json
+.vscode/settings.json
