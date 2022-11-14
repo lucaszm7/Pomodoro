@@ -2,13 +2,14 @@
 
 #include <chrono>
 #include <vector>
+#include <random>
 
 struct Timer
 {
-    std::chrono::steady_clock::time_point start;
+    std::chrono::high_resolution_clock::time_point start;
     std::chrono::duration<double> duration;
 
-    Timer(std::string n)
+    Timer()
     {
         start = std::chrono::high_resolution_clock::now();
     }
@@ -19,7 +20,7 @@ struct Timer
         // std::cout << "\nTook: " << duration.count() * 1000.0 << "ms\n";
     }
 
-    double now()
+    double anow()
     {
         duration = std::chrono::high_resolution_clock::now() - start;
         return duration.count();
@@ -37,6 +38,12 @@ struct Timer
     }
 };
 
+template <typename T>
+T rand(T start, T end)
+{
+    return (start + static_cast<T> (std::rand()) / (static_cast <T> (RAND_MAX / (end - start))));
+}
+
 template<typename T>
 std::vector<T> RandList(T start, T end, unsigned int size)
 {
@@ -46,12 +53,7 @@ std::vector<T> RandList(T start, T end, unsigned int size)
     {
         result.emplace_back(rand<T>(start, end));
     }
-    return &result;
+    return result;
 }
 
-template <typename T>
-inline T rand(T start, T end)
-{
-    return (start + static_cast<T> (std::rand()) / (static_cast <T> (RAND_MAX / (end - start))));
-}
 
