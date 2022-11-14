@@ -2,6 +2,7 @@
 #include "olcPixelGameEngine.h"
 
 #include <iostream>
+#include <algorithm>
 #include "utils.hpp"
 
 class Example : public olc::PixelGameEngine
@@ -43,7 +44,7 @@ private:
 	std::vector<unsigned int> items;
 
 public:
-	Bin(unsigned int cap = 10)
+	Bin(unsigned int cap = 50)
 		: m_capacity(cap) {}
 
 	bool insert (unsigned int item)
@@ -57,6 +58,11 @@ public:
 		return false;
 	}
 
+	int spaceLeft(int item)
+	{
+		return m_capacity - item;
+	}
+
 	friend auto operator<<(std::ostream& out, Bin const& bin) -> std::ostream& 
 	{
 		for(const auto& i : bin.items)
@@ -68,6 +74,7 @@ public:
 
 };
 
+// 2-aproximativo
 void next_fit(std::vector<Bin>& bins, const std::vector<unsigned int>& items)
 {
 	int i = 0;
@@ -82,6 +89,7 @@ void next_fit(std::vector<Bin>& bins, const std::vector<unsigned int>& items)
 	}
 }
 
+// 1.7-aproximativo
 void first_fit(std::vector<Bin>& bins, const std::vector<unsigned int>& items)
 {
 	int j = 0;
@@ -100,17 +108,44 @@ void first_fit(std::vector<Bin>& bins, const std::vector<unsigned int>& items)
 	}
 }
 
+// 1.7-aproximativo
+void best_fit(std::vector<Bin>& bins, const std::vector<unsigned int>& items)
+{
+	for(int j = 0; j < items.size(); ++j)
+	{
+		bool found = false;
+		std::pair<int, int> min_value = {-1, INT_MAX};
+		for(int i = 0; i < bins.size(); ++i)
+		{
+			unsigned int left = bins[i].spaceLeft(items[j]);
+			if(left >= 0 && left < min_value.second) { found = true; min_value = {i, left};}
+		}
+		if(found)
+		{
+			bins[min_value.first].insert(items[j]);
+		}
+		else
+		{
+			bins.emplace_back();
+			bins.back().insert(items[j]);
+		}
+	}
+}
+
 int main()
 {
 	std::vector<Bin> containers_next;
 	std::vector<Bin> containers_first;
-	std::vector<unsigned int> items = RandList<unsigned int>(1, 10, 20);
+	std::vector<Bin> containers_best;
+	std::vector<unsigned int> items = RandList<unsigned int>(1, 30, 20);
 
 	containers_next.emplace_back();
 	containers_first.emplace_back();
+	containers_best.emplace_back();
 
 	first_fit(containers_first, items);
 	next_fit(containers_next, items);
+	best_fit(containers_best, items);
 
 	std::cout << "Next("<< containers_next.size() <<"): \n";
 	for(const auto& c : containers_next)
@@ -120,6 +155,12 @@ int main()
 	
 	std::cout << "First("<< containers_first.size() <<"): \n";
 	for(const auto& c : containers_first)
+	{
+		std::cout << "\tBin: " << c << "\n";
+	}
+	
+	std::cout << "Best("<< containers_best.size() <<"): \n";
+	for(const auto& c : containers_best)
 	{
 		std::cout << "\tBin: " << c << "\n";
 	}
