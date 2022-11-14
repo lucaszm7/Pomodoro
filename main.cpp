@@ -1,4 +1,4 @@
-#define OLC_PGE_APPLICATION
+#define OLC_PGE_APPLICATION 
 #include "olcPixelGameEngine.h"
 
 class Example : public olc::PixelGameEngine
@@ -36,11 +36,11 @@ public:
 struct Bin
 {
 private:
-	unsigned int m_capacity = 10;
+	unsigned int m_capacity;
 	std::vector<unsigned int> items;
 
 public:
-	Bin(unsigned int cap)
+	Bin(unsigned int cap = 10)
 		: m_capacity(cap) {}
 
 	bool insert (unsigned int item)
@@ -65,34 +65,60 @@ public:
 
 };
 
+void next_fit(std::vector<Bin>& bins, const std::vector<unsigned int>& items)
+{
+	int i = 0;
+	int j = 0;
+	for(; j < items.size(); ++j)
+	{
+		if(!bins[i].insert(items[j]))
+		{
+			bins.emplace_back();
+			bins[++i].insert(items[j]);
+		} 
+	}
+}
+
+void first_fit(std::vector<Bin>& bins, const std::vector<unsigned int>& items)
+{
+	int j = 0;
+	for(; j < items.size(); ++j)
+	{
+		bool found = false;
+		for(auto& bin : bins)
+		{
+			if(bin.insert(items[j])){ found = true; break;}
+		}
+		if(!found)
+		{
+			bins.emplace_back();
+			bins.back().insert(items[j]);
+		}
+	}
+}
+
 int main()
 {
-	std::vector<Bin> containers;
-	std::vector<unsigned int> weigth {5,4,3,6,3,1,6,3,9};
+	std::vector<Bin> containers_next;
+	std::vector<Bin> containers_first;
+	std::vector<unsigned int> items {5,4,3,6,3,1,6,3,9};
 
-	containers.emplace_back(10);
-	unsigned int count = 0;
-	int i = 0;
-	while(i < weigth.size())
-	{
-		if(!containers[count].insert(weigth[i]))
-		{
-			containers.emplace_back(10);
-			count++;
-			continue;
-		}
-		++i;
-	} 
+	containers_next.emplace_back(10);
+	containers_first.emplace_back(10);
 
-	for(const auto& c : containers)
+	first_fit(containers_first, items);
+	next_fit(containers_next, items);
+
+	std::cout << "Next("<< containers_next.size() <<"): \n";
+	for(const auto& c : containers_next)
 	{
-		std::cout << "Bin: " << c << "\n";
+		std::cout << "\tBin: " << c << "\n";
 	}
-
+	
+	std::cout << "First("<< containers_first.size() <<"): \n";
+	for(const auto& c : containers_first)
 	{
-		Example demo;
-		if (demo.Construct(256, 240, 4, 4))
-			demo.Start();
+		std::cout << "\tBin: " << c << "\n";
 	}
 
 	return 0;
