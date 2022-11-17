@@ -4,6 +4,7 @@
 #include <iostream>
 #include <algorithm>
 #include "utils.hpp"
+#include <cmath>
 
 class Example : public olc::PixelGameEngine
 {
@@ -14,19 +15,35 @@ public:
 	}
 
 public:
+	int counter;
+	uint raio;
 
 	bool draw(float fElapsedTime)
 	{
 		// called once per frame
-		for (int x = 0; x < ScreenWidth(); x++)
-			for (int y = 0; y < ScreenHeight(); y++)
-				Draw(x, y, olc::Pixel(rand() % 255, rand() % 255, rand()% 255));	
+		Clear(olc::DARK_GREEN);
+		FillCircle(olc::vi2d(ScreenWidth() / 2, ScreenHeight() / 2), raio, olc::GREY);
+		DrawCircle(olc::vi2d(ScreenWidth() / 2, ScreenHeight() / 2), raio, olc::BLUE);
+		DrawLine(
+			olc::vi2d(
+				ScreenWidth() / 2,
+				ScreenHeight() / 2
+			),
+			olc::vi2d(
+				ScreenWidth() / 2 + (raio * cos(counter * M_PI / 60.0)), 
+				ScreenHeight() / 2 + (raio * sin(counter * M_PI / 60.0))
+			),
+			olc::BLACK
+		);
+
+		counter = time(0);
 		return true;
 	}
 
 	bool OnUserCreate() override
 	{
 		// Called once at the start, so create things here
+		raio = ScreenHeight() / 5;
 		return true;
 	}
 
@@ -165,5 +182,11 @@ int main()
 		std::cout << "\tBin: " << c << "\n";
 	}
 
+	{
+		Example app;
+		if (app.Construct(256, 256, 2, 2)){
+			app.Start();
+		}
+	}
 	return 0;
 }
