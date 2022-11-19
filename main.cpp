@@ -46,6 +46,10 @@ public:
 	olc::Pixel getColor() {
 		return color;
 	}
+
+	uint32_t getArea() {
+		return widht * heigth;
+	}
 };
 
 struct Segment
@@ -104,6 +108,8 @@ private:
 	uint32_t height = 0;
 	uint32_t width = 0;
 
+	uint32_t area_free = 0;
+
 	olc::vu2d coordinates = {0, 0};
 	std::vector<Item> items;
 	std::vector<Line> lines;
@@ -116,6 +122,8 @@ public:
 		for (int c = 0; c < width; c++) {
 			lines.push_back(Line(Segment(0, height)));
 		}
+
+		area_free = width * height;
 	}
 
 	bool insert (Item item)
@@ -124,6 +132,7 @@ public:
 		uint32_t item_height = item.getHeight();
 		if (item_height > height || item_width > width) return false;
 		if (item_height == 0 || item_width == 0) return false;
+		if (area_free < item.getArea()) return false;
 
 		uint32_t offset_x = 0;
 		uint32_t offset_y = 0;
@@ -150,6 +159,8 @@ public:
 							lines[c + offset_x].removeSegment(cur_segment);
 						}
 
+
+						area_free = area_free - item.getWidth() * item.getHeight();
 						return true;
 					}
 				}
@@ -188,6 +199,10 @@ public:
 	std::vector<Item>& getItemsInBin(){
 		return items;
 	}
+
+	uint32_t getArea() {
+		return width * height;
+	}
 };
 
 
@@ -200,8 +215,8 @@ public:
 	}
 
 public:
-	uint32_t bin_width = 64;
-	uint32_t bin_height = 64;
+	uint32_t bin_width = 128;
+	uint32_t bin_height = 256;
 	std::vector<Bin> bins;
 
 	bool draw(float fElapsedTime)
@@ -231,11 +246,21 @@ public:
 	bool OnUserCreate() override
 	{
 		// Called once at the start, so create things here
-		int items_to_pack = 20;
+		int big_items_to_pack = 10;
+		int medium_items_to_pack = 20;
+		int small_items_to_pack = 100;
 		srand(time(NULL));
-		for (int c = 0; c < items_to_pack; c++){
-			std::cout << "Inserted: " << insert(Item((rand() % bin_height) + 1, (rand() % bin_width)+ 1)) << "\n";
+		
+		for (int c = 0; c < big_items_to_pack; c++){
+			std::cout << "Inserted: " << insert(Item((rand() % (bin_height)) + 1, (rand() % (bin_width))+ 1)) << "\n";
 		}
+		for (int c = 0; c < medium_items_to_pack; c++){
+			std::cout << "Inserted: " << insert(Item((rand() % (bin_height / 2)) + 1, (rand() % (bin_width / 2))+ 1)) << "\n";
+		}
+		for (int c = 0; c < small_items_to_pack; c++){
+			std::cout << "Inserted: " << insert(Item((rand() % (bin_height / 4)) + 1, (rand() % (bin_width / 4))+ 1)) << "\n";
+		}
+
 		return true;
 	}
 
@@ -283,7 +308,7 @@ int main()
 {
 	{
 		Example app;
-		if (app.Construct(640, 360, 2, 2)){
+		if (app.Construct(1280, 720, 1, 1)){
 			app.Start();
 		}
 	}
