@@ -250,11 +250,13 @@ public:
 	bool OnUserCreate() override
 	{
 		// Called once at the start, so create things here
-		int big_items_to_pack = 10;
-		int medium_items_to_pack = 20;
-		int small_items_to_pack = 100;
+		int big_items_to_pack = 500;
+		int medium_items_to_pack = 2000;
+		int small_items_to_pack = 10000;
 		srand(time(NULL));
 		
+		// Measure the time to pack
+		Timer T = Timer();
 		for (int c = 0; c < big_items_to_pack; c++){
 			std::cout << "Inserted: " << insert(Item((rand() % (bin_height)) + 1, (rand() % (bin_width))+ 1)) << "\n";
 		}
@@ -264,6 +266,8 @@ public:
 		for (int c = 0; c < small_items_to_pack; c++){
 			std::cout << "Inserted: " << insert(Item((rand() % (bin_height / 4)) + 1, (rand() % (bin_width / 4))+ 1)) << "\n";
 		}
+
+		std::cout << "Time Taken: " << T.now() << "s\n";
 
 		return true;
 	}
