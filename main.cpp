@@ -6,8 +6,6 @@
 #include "utils.hpp"
 #include <cmath>
 
-#define DEFAULT_BIN_SPACING 10
-
 struct Item
 {
 private:
@@ -172,9 +170,18 @@ public:
 	}
 
 	bool moveItem(olc::vu2d newPosition){
+		int32_t offset_x = newPosition.x - coordinates.x;
+		int32_t offset_y = newPosition.y - coordinates.y;
 		coordinates = newPosition;
 		// Have to move all the items
-
+		for (int c = 0; c < items.size(); c++){
+			items[c].moveItem(
+				olc::vu2d(
+					items[c].getLeftUpperCorner().x + offset_x,
+					items[c].getLeftUpperCorner().y + offset_y
+				)
+			);
+		}
 		return true;
 	}
 
@@ -248,9 +255,21 @@ public:
 
 		// Create new Bin
 		Bin new_bin = Bin(bin_height, bin_width);
+		
+		// Move all bins before
+		uint32_t positions = (uint32_t) ScreenWidth() / (bins.size() + 2);
+		for (int c = 0; c < bins.size(); c++){
+			bins[c].moveItem(
+				olc::vu2d(
+					positions * (c + 1), 
+					(uint32_t) ScreenHeight() / 2
+				)
+			);
+		}
+		
 		new_bin.moveItem(
 			olc::vu2d(
-				(uint32_t) ScreenWidth() / 8 + ((bin_width + DEFAULT_BIN_SPACING) * bins.size()), 
+				positions * (bins.size() + 1),  
 				(uint32_t) ScreenHeight() / 2
 			)
 		);
