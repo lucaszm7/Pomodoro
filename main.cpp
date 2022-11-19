@@ -5,94 +5,227 @@
 #include <algorithm>
 #include "utils.hpp"
 #include <cmath>
-#define M_PI 3.141592653589793238462643
+
+struct Item
+{
+private:
+	uint32_t widht = 0;
+	uint32_t heigth = 0;
+	olc::vu2d coordinates = {0,0};
+	olc::Pixel color;
+public:
+	Item(uint32_t height_value, uint32_t width_value)
+		: widht(width_value), heigth(height_value) {
+			color = olc::Pixel(rand() % 255, rand() % 255, rand() % 255);
+		}
+
+	uint32_t getHeight(){
+		return heigth;
+	}
+	uint32_t getWidth(){
+		return widht;
+	}
+
+	bool moveItem(olc::vu2d newPosition){
+		coordinates = newPosition;
+		return true;
+	}
+
+	olc::vu2d getLeftUpperCorner(){
+		return coordinates;
+	}
+
+	olc::vu2d getRightBottomCorner(){
+		return olc::vu2d(coordinates.x + widht, coordinates.y + heigth);
+	}
+
+	olc::vu2d getSize(){
+		return olc::vu2d(widht, heigth);
+	}
+
+	olc::Pixel getColor() {
+		return color;
+	}
+};
+
+struct Segment
+{
+public:
+	uint32_t start = 0;
+	uint32_t end = 0;
+	Segment(uint32_t start, uint32_t end)
+		:start(start), end(end)	{}
+};
+
+struct Line
+{
+private:
+	std::vector<Segment> free_segments;
+public:
+	Line(Segment size) {
+		free_segments.push_back(size);
+	}
+
+	bool removeSegment(Segment segment_to_remove){
+		int indexSegment = containsSegment(segment_to_remove);
+		if (indexSegment != -1){
+			// Check if the segment to remove is in the start 
+			if (segment_to_remove.start == free_segments[indexSegment].start){
+				free_segments[indexSegment].start = segment_to_remove.end;
+			}
+			// Check if the segment to remove is in the finish
+			else if (segment_to_remove.end == free_segments[indexSegment].end){
+				free_segments[indexSegment].end = segment_to_remove.start;
+			}
+			// Split the segment in two
+			else {
+				free_segments.push_back(Segment(segment_to_remove.end, free_segments[indexSegment].end));
+				free_segments[indexSegment].end = segment_to_remove.start;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	// Returns the index of the first segment that can fit, returns -1 if the line doesnt contain the segment
+	int containsSegment(Segment segment) {
+		for (int c = 0; c < free_segments.size(); c++){
+			if (free_segments[c].start <= segment.start && free_segments[c].end >= segment.end){
+				return c;
+			}
+		}
+		return -1;
+	}
+};
+
+struct Bin
+{
+private:
+	uint32_t height = 0;
+	uint32_t width = 0;
+
+	olc::vu2d coordinates = {0, 0};
+	std::vector<Item> items;
+	std::vector<Line> lines;
+
+public:
+	Bin(uint32_t height, uint32_t width) 
+		: height(height), width(width)
+	{
+		// Create the vertical lines
+		for (int c = 0; c < width; c++) {
+			lines.push_back(Line(Segment(0, height)));
+		}
+	}
+
+	bool insert (Item item)
+	{
+		uint32_t item_width = item.getWidth();
+		uint32_t item_height = item.getHeight();
+		if (item_height > height || item_width > width) return false;
+		
+		uint32_t offset_x = 0;
+		uint32_t offset_y = 0;
+		for (offset_x = 0; offset_x < (width - item_width); offset_x++) {
+			for (offset_y = 0; offset_y < (height - item_height); offset_y++){
+				Segment cur_segment = Segment(offset_y, offset_y + item_height);
+			
+				// If this line has the segment free, then search on the adjacent lines for the same segment
+				if (lines[offset_x].containsSegment(cur_segment) != -1){
+					bool adjacentLinesHaveSpace = true;
+					for(int c = 0; c < item_width; c++) {
+						if (lines[c + offset_x].containsSegment(cur_segment) == -1) {
+							adjacentLinesHaveSpace = false;
+							break;
+						}
+					}
+
+					if (adjacentLinesHaveSpace){
+						item.moveItem(olc::vu2d(offset_x+coordinates.x, offset_y+coordinates.y));
+						items.push_back(item);
+
+						// remove the segment from all 
+						for (int c = 0; c < item_width; c++){
+							lines[c + offset_x].removeSegment(cur_segment);
+						}
+
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
+	olc::vu2d getLeftUpperCorner(){
+		return coordinates;
+	}
+	olc::vu2d getRightBottomCorner(){
+		return olc::vu2d(coordinates.x + width, coordinates.y + height);
+	}
+	olc::vu2d getSize(){
+		return olc::vu2d(width, height);
+	}
+
+	bool moveItem(olc::vu2d newPosition){
+		coordinates = newPosition;
+		return true;
+	}
+
+	std::vector<Item> getItemsInBin(){
+		return items;
+	}
+};
+
 
 class Example : public olc::PixelGameEngine
 {
 public:
 	Example()
 	{
-		sAppName = "Clock";
+		sAppName = "BinPack 2D";
 	}
 
 public:
-	int counter;
-	uint32_t raio;
-	olc::Pixel color = olc::Pixel(255, 165, 0);
+	Bin bin = Bin(64, 128);
 	bool draw(float fElapsedTime)
-	{
-		// called once per frame
-		Clear(olc::Pixel(64, 128, 128, (counter % 128) + 127));
-
-		FillCircle(olc::vi2d(ScreenWidth() / 2, ScreenHeight() / 2), raio, olc::Pixel(155, 155, 155, 255));
-		DrawCircle(olc::vi2d(ScreenWidth() / 2, ScreenHeight() / 2), raio + 0, olc::CYAN);
-		DrawCircle(olc::vi2d(ScreenWidth() / 2, ScreenHeight() / 2), raio + 1, olc::BLUE);
-		DrawCircle(olc::vi2d(ScreenWidth() / 2, ScreenHeight() / 2), raio + 2, olc::BLACK);
-
-		// Seconds
-		uint8_t second = counter % 60;
-		DrawLine(
-			olc::vi2d(
-				ScreenWidth() / 2,
-				ScreenHeight() / 2
-			),
-			olc::vi2d(
-				ScreenWidth() / 2 + (raio * cos((((second) * 6.0) - 90.0) * M_PI / 180.0)), 
-				ScreenHeight() / 2 + (raio * sin((((second) * 6.0) - 90.0) * M_PI / 180.0))
-			),
-			color
+	{	
+		// Draw the bin
+		DrawRect(
+			bin.getLeftUpperCorner(),
+			bin.getSize()
 		);
 
-		// Minutes
-		uint8_t minute = (counter / 60) % 60;
-		DrawLine(
-			olc::vi2d(
-				ScreenWidth() / 2,
-				ScreenHeight() / 2
-			),
-			olc::vi2d(
-				ScreenWidth() / 2 + ((raio * 3/4) * cos((((minute) * 6.0) - 90.0) * M_PI / 180.0)), 
-				ScreenHeight() / 2 + ((raio * 3/4) * sin((((minute) * 6.0) - 90.0) * M_PI / 180.0))
-			),
-			olc::BACK
-		);
+		// Draw each item in the bin
+		std::vector<Item> items = bin.getItemsInBin();
 
-		// Hours
-		#define GMT_OFFSET 3 
-		uint8_t hour = ((counter / (60 * 60) - GMT_OFFSET) % 12);
-		DrawLine(
-			olc::vi2d(
-				ScreenWidth() / 2,
-				ScreenHeight() / 2
-			),
-			olc::vi2d(
-				ScreenWidth() / 2 + ((raio / 2) * cos(((hour * 30) - 90) * M_PI / 180.0)), 
-				ScreenHeight() / 2 + ((raio / 2) * sin(((hour * 30) - 90) * M_PI / 180.0))
-			),
-			olc::DARK_MAGENTA
-		);
-
-
-		std::ostringstream stream;
-		stream << std::setw(2) << std::setfill('0') << (int) hour << ":" << std::setw(2) << std::setfill('0') << (int) minute << ":" << std::setw(2) << std::setfill('0') << (int) second;
-		std::string digital_hour = stream.str();
-
-		DrawString(
-			olc::vi2d(
-				ScreenWidth() / 2  - raio,
-				ScreenHeight() / 2 + raio + 10
-			),
-			digital_hour
-		);
-
-		counter = time(0);
+		for (int c = 0; c < items.size(); c++){
+			FillRect(
+				items[c].getLeftUpperCorner(),
+				items[c].getSize(),
+				items[c].getColor()
+			);
+		}
 		return true;
 	}
 
 	bool OnUserCreate() override
 	{
 		// Called once at the start, so create things here
-		raio = ScreenHeight() / 5;
+		bin.moveItem({ScreenWidth() / 3, ScreenHeight() / 2});
+
+		std::cout << "Inserted: " << bin.insert(Item(32,32)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(63,48)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(14,2)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(16,32)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(8,32)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(16,8)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(2,14)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(14,2)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(14,2)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(14,2)) << "\n";
+
 		return true;
 	}
 
@@ -103,134 +236,8 @@ public:
 	}
 };
 
-struct Bin
-{
-private:
-	unsigned int m_capacity;
-	std::vector<unsigned int> items;
-
-public:
-	Bin(unsigned int cap = 50)
-		: m_capacity(cap) {}
-
-	bool insert (unsigned int item)
-	{
-		if(m_capacity >= item) 
-		{
-			items.push_back(item);
-			m_capacity -= item;
-			return true;
-		}
-		return false;
-	}
-
-	int spaceLeft(int item)
-	{
-		return m_capacity - item;
-	}
-
-	friend auto operator<<(std::ostream& out, Bin const& bin) -> std::ostream& 
-	{
-		for(const auto& i : bin.items)
-		{
-			out << i << ", ";
-		}
-		return out;
-	}
-
-};
-
-// 2-aproximativo
-void next_fit(std::vector<Bin>& bins, const std::vector<unsigned int>& items)
-{
-	int i = 0;
-	int j = 0;
-	for(; j < items.size(); ++j)
-	{
-		if(!bins[i].insert(items[j]))
-		{
-			bins.emplace_back();
-			bins[++i].insert(items[j]);
-		} 
-	}
-}
-
-// 1.7-aproximativo
-void first_fit(std::vector<Bin>& bins, const std::vector<unsigned int>& items)
-{
-	int j = 0;
-	for(; j < items.size(); ++j)
-	{
-		bool found = false;
-		for(auto& bin : bins)
-		{
-			if(bin.insert(items[j])){ found = true; break;}
-		}
-		if(!found)
-		{
-			bins.emplace_back();
-			bins.back().insert(items[j]);
-		}
-	}
-}
-
-// 1.7-aproximativo
-void best_fit(std::vector<Bin>& bins, const std::vector<unsigned int>& items)
-{
-	for(int j = 0; j < items.size(); ++j)
-	{
-		bool found = false;
-		std::pair<int, int> min_value = {-1, INT_MAX};
-		for(int i = 0; i < bins.size(); ++i)
-		{
-			unsigned int left = bins[i].spaceLeft(items[j]);
-			if(left >= 0 && left < min_value.second) { found = true; min_value = {i, left};}
-		}
-		if(found)
-		{
-			bins[min_value.first].insert(items[j]);
-		}
-		else
-		{
-			bins.emplace_back();
-			bins.back().insert(items[j]);
-		}
-	}
-}
-
 int main()
 {
-	std::vector<Bin> containers_next;
-	std::vector<Bin> containers_first;
-	std::vector<Bin> containers_best;
-	std::vector<unsigned int> items = RandList<unsigned int>(1, 30, 20);
-
-	containers_next.emplace_back();
-	containers_first.emplace_back();
-	containers_best.emplace_back();
-
-	first_fit(containers_first, items);
-	next_fit(containers_next, items);
-	best_fit(containers_best, items);
-
-	std::cout << "Next("<< containers_next.size() <<"): \n";
-	for(const auto& c : containers_next)
-	{
-		std::cout << "\tBin: " << c << "\n";
-	}
-	
-	std::cout << "First("<< containers_first.size() <<"): \n";
-	for(const auto& c : containers_first)
-	{
-		std::cout << "\tBin: " << c << "\n";
-	}
-	
-	std::cout << "Best("<< containers_best.size() <<"): \n";
-	for(const auto& c : containers_best)
-	{
-		std::cout << "\tBin: " << c << "\n";
-	}
-
 	{
 		Example app;
 		if (app.Construct(640, 360, 2, 2)){
