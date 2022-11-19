@@ -207,7 +207,9 @@ public:
 class BinPacking2D : public olc::PixelGameEngine
 {
 public:
-	Bin bin = Bin(64, 128);
+	uint32_t bin_width = 128;
+	uint32_t bin_height = 256;
+	std::vector<Bin> bins;
 
 	BinPacking2D()
 	{
@@ -219,27 +221,29 @@ public:
 	{
 		Clear(olc::VERY_DARK_BLUE);
 
-		olc::vd2d binTLbefore = bin.getLeftUpperCorner() - olc::vu2d(1,1);
-		olc::vd2d binBRbefore = bin.getRightBottomCorner() + olc::vu2d(1,1);
-
-		olc::vi2d binTLafter;
-		olc::vi2d binBRafter;
-
-		WorldToScreen(binTLbefore, binTLafter);
-		WorldToScreen(binBRbefore, binBRafter);
-
-		FillRect(binTLafter, binBRafter - binTLafter, olc::BLACK);
-		DrawRect(binTLafter, binBRafter - binTLafter, olc::WHITE);
-
-		olc::vi2d itemTLafter;
-		olc::vi2d itemBRafter;
-		for(const auto& item : bin.getItemsInBin())
+		for(const auto& bin : bins)
 		{
-			WorldToScreen(item.getLeftUpperCorner(), binTLafter);
-			WorldToScreen(item.getRightBottomCorner(), binBRafter);
-			FillRect(binTLafter, binBRafter - binTLafter, item.getColor());
-		}
+			olc::vd2d binTLbefore = bin.getLeftUpperCorner() - olc::vu2d(1,1);
+			olc::vd2d binBRbefore = bin.getRightBottomCorner() + olc::vu2d(1,1);
 
+			olc::vi2d binTLafter;
+			olc::vi2d binBRafter;
+
+			WorldToScreen(binTLbefore, binTLafter);
+			WorldToScreen(binBRbefore, binBRafter);
+
+			FillRect(binTLafter, binBRafter - binTLafter, olc::BLACK);
+			DrawRect(binTLafter, binBRafter - binTLafter, olc::WHITE);
+
+			olc::vi2d itemTLafter;
+			olc::vi2d itemBRafter;
+			for(const auto& item : bin.getItemsInBin())
+			{
+				WorldToScreen(item.getLeftUpperCorner(), binTLafter);
+				WorldToScreen(item.getRightBottomCorner(), binBRafter);
+				FillRect(binTLafter, binBRafter - binTLafter, item.getColor());
+			}
+		}
 		return true;
 	}
 
@@ -330,23 +334,8 @@ protected:
 		// Create new Bin
 		Bin new_bin = Bin(bin_height, bin_width);
 		
-		// Move all bins before
-		uint32_t positions = (uint32_t) ScreenWidth() / (bins.size() + 2);
-		for (int c = 0; c < bins.size(); c++){
-			bins[c].moveItem(
-				olc::vu2d(
-					positions * (c + 1) - bin_width / 2, 
-					(uint32_t) ScreenHeight() / 2 - bin_height / 2
-				)
-			);
-		}
+		new_bin.moveItem(olc::vu2d((bins.size() + 1) * (bin_width + 20), (uint32_t) ScreenHeight() / 2 - bin_height / 2));
 		
-		new_bin.moveItem(
-			olc::vu2d(
-				positions * (bins.size() + 1) - bin_width / 2,  
-				(uint32_t) ScreenHeight() / 2 - bin_height / 2
-			)
-		);
 		if (new_bin.insert(item) == false) return false;
 		bins.push_back(new_bin);
 		return true;
