@@ -239,9 +239,9 @@ public:
 			olc::vi2d itemBRafter;
 			for(const auto& item : bin.getItemsInBin())
 			{
-				WorldToScreen(item.getLeftUpperCorner(), binTLafter);
-				WorldToScreen(item.getRightBottomCorner(), binBRafter);
-				FillRect(binTLafter, binBRafter - binTLafter, item.getColor());
+				WorldToScreen(item.getLeftUpperCorner(), itemTLafter);
+				WorldToScreen(item.getRightBottomCorner(), itemBRafter);
+				FillRect(itemTLafter, itemBRafter - itemTLafter, item.getColor());
 			}
 		}
 		return true;
@@ -291,16 +291,14 @@ public:
             vOffset -= (vMouse - vStartPan) / vScale;
             vStartPan = vMouse;
         }
-
-        olc::vd2d vMouseBeforeZoom;
-        ScreenToWorld(vMouse, vMouseBeforeZoom);
-
-		if (GetKey(olc::Key::E).bHeld) vScale *= 1.1; 
-		if (GetKey(olc::Key::Q).bHeld) vScale *= 0.9;
 		
-		olc::vd2d vMouseAfterZoom;
-		ScreenToWorld(vMouse, vMouseAfterZoom);
-		vOffset += (vMouseBeforeZoom - vMouseAfterZoom);
+		if (GetKey(olc::Key::E).bHeld) vScale *= 1.01; 
+		if (GetKey(olc::Key::Q).bHeld) vScale *= 0.99;
+		
+		if (GetKey(olc::Key::A).bHeld)	vOffset -= olc::vd2d(2.0, 0.0) / vScale;
+		if (GetKey(olc::Key::D).bHeld)	vOffset += olc::vd2d(2.0, 0.0) / vScale;
+		if (GetKey(olc::Key::W).bHeld) 	vOffset -= olc::vd2d(0.0, 2.0) / vScale;
+		if (GetKey(olc::Key::S).bHeld)	vOffset += olc::vd2d(0.0, 2.0) / vScale;
 
 		return true;
 	}
