@@ -31,19 +31,19 @@ public:
 		return true;
 	}
 
-	olc::vu2d getLeftUpperCorner(){
+	olc::vu2d getLeftUpperCorner() const {
 		return coordinates;
 	}
 
-	olc::vu2d getRightBottomCorner(){
+	olc::vu2d getRightBottomCorner() const {
 		return olc::vu2d(coordinates.x + widht, coordinates.y + heigth);
 	}
 
-	olc::vu2d getSize(){
+	olc::vu2d getSize() const {
 		return olc::vu2d(widht, heigth);
 	}
 
-	olc::Pixel getColor() {
+	olc::Pixel getColor() const {
 		return color;
 	}
 
@@ -134,10 +134,8 @@ public:
 		if (item_height == 0 || item_width == 0) return false;
 		if (area_free < item.getArea()) return false;
 
-		uint32_t offset_x = 0;
-		uint32_t offset_y = 0;
-		for (offset_x = 0; offset_x <= (width - item_width); offset_x++) {
-			for (offset_y = 0; offset_y <= (height - item_height); offset_y++){
+		for (uint32_t offset_x = 0; offset_x <= (width - item_width); offset_x++) {
+			for (uint32_t offset_y = 0; offset_y <= (height - item_height); offset_y++){
 				Segment cur_segment = Segment(offset_y, offset_y + item_height);
 			
 				// If this line has the segment free, then search on the adjacent lines for the same segment
@@ -170,13 +168,13 @@ public:
 		return false;
 	}
 
-	olc::vu2d getLeftUpperCorner(){
+	olc::vu2d getLeftUpperCorner() const {
 		return coordinates;
 	}
-	olc::vu2d getRightBottomCorner(){
+	olc::vu2d getRightBottomCorner() const {
 		return olc::vu2d(coordinates.x + width, coordinates.y + height);
 	}
-	olc::vu2d getSize(){
+	olc::vu2d getSize() const {
 		return olc::vu2d(width, height);
 	}
 
@@ -196,7 +194,7 @@ public:
 		return true;
 	}
 
-	std::vector<Item>& getItemsInBin(){
+	const std::vector<Item>& getItemsInBin() const {
 		return items;
 	}
 
@@ -206,40 +204,42 @@ public:
 };
 
 
-class Example : public olc::PixelGameEngine
+class BinPacking2D : public olc::PixelGameEngine
 {
 public:
-	Example()
+	Bin bin = Bin(64, 128);
+
+	BinPacking2D()
 	{
-		sAppName = "BinPack 2D";
+		sAppName = "BinPacking2D";
 	}
 
 public:
-	uint32_t bin_width = 128;
-	uint32_t bin_height = 256;
-	std::vector<Bin> bins;
+	bool Draw(float fElapsedTime)
+	{
+		Clear(olc::VERY_DARK_BLUE);
 
-	bool draw(float fElapsedTime)
-	{	
-		for (int c = 0; c < bins.size(); c++){
-			Bin bin = bins[c];
-			// Draw the bin
-			DrawRect(
-				bin.getLeftUpperCorner() - olc::vu2d(1, 1),
-				bin.getSize() + olc::vu2d(1, 1)
-			);
+		olc::vd2d binTLbefore = bin.getLeftUpperCorner() - olc::vu2d(1,1);
+		olc::vd2d binBRbefore = bin.getRightBottomCorner() + olc::vu2d(1,1);
 
-			// Draw each item in the bin
-			std::vector<Item> items = bin.getItemsInBin();
+		olc::vi2d binTLafter;
+		olc::vi2d binBRafter;
 
-			for (int c = 0; c < items.size(); c++){
-				FillRect(
-					items[c].getLeftUpperCorner(),
-					items[c].getSize(),
-					items[c].getColor()
-				);
-			}
+		WorldToScreen(binTLbefore, binTLafter);
+		WorldToScreen(binBRbefore, binBRafter);
+
+		FillRect(binTLafter, binBRafter - binTLafter, olc::BLACK);
+		DrawRect(binTLafter, binBRafter - binTLafter, olc::WHITE);
+
+		olc::vi2d itemTLafter;
+		olc::vi2d itemBRafter;
+		for(const auto& item : bin.getItemsInBin())
+		{
+			WorldToScreen(item.getLeftUpperCorner(), binTLafter);
+			WorldToScreen(item.getRightBottomCorner(), binBRafter);
+			FillRect(binTLafter, binBRafter - binTLafter, item.getColor());
 		}
+
 		return true;
 	}
 
@@ -266,9 +266,58 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		draw(fElapsedTime);
+		Draw(fElapsedTime);
+
+		// Panning and Zoomig, credits to @OneLoneCoder who i'am inpired for
+        olc::vd2d vMouse = {(double)GetMouseX(), (double)GetMouseY()};
+
+        // Get the position of the mouse and move the world Final Pos - Inital Pos
+        // This make us drag Around the Screen Space, with the OffSet variable
+        if(GetMouse(0).bPressed)
+        {
+            vStartPan = vMouse;
+        }
+
+        if(GetMouse(0).bHeld)
+        {
+            vOffset -= (vMouse - vStartPan) / vScale;
+            vStartPan = vMouse;
+        }
+
+        olc::vd2d vMouseBeforeZoom;
+        ScreenToWorld(vMouse, vMouseBeforeZoom);
+
+		if (GetKey(olc::Key::E).bHeld) vScale *= 1.1; 
+		if (GetKey(olc::Key::Q).bHeld) vScale *= 0.9;
+		
+		olc::vd2d vMouseAfterZoom;
+		ScreenToWorld(vMouse, vMouseAfterZoom);
+		vOffset += (vMouseBeforeZoom - vMouseAfterZoom);
+
 		return true;
 	}
+
+
+protected:
+	protected:
+    // Pan & Zoom variables
+	olc::vd2d vOffset = { 0.0, 0.0 };
+	olc::vd2d vStartPan = { 0.0, 0.0 };
+	olc::vd2d vScale = { 1.0, 1.0 };
+
+    void ScreenToWorld(const olc::vi2d& s, olc::vd2d& w)
+	{
+		w.x = (double)(s.x) / vScale.x + vOffset.x;
+		w.y = (double)(s.y) / vScale.y + vOffset.y;
+	}
+
+    // Converte coords from Screen Space to World Space
+    void WorldToScreen(const olc::vd2d& w, olc::vi2d &s)
+	{
+		s.x = (int)((w.x - vOffset.x) * vScale.x);
+		s.y = (int)((w.y - vOffset.y) * vScale.y);
+	}
+
 
 	bool insert(Item item){
 		if (item.getHeight() > bin_height || item.getWidth() > bin_width) return false;
@@ -302,13 +351,14 @@ public:
 		bins.push_back(new_bin);
 		return true;
 	}
+
 };
 
 int main()
 {
 	{
-		Example app;
-		if (app.Construct(1280, 720, 1, 1)){
+		BinPacking2D app;
+		if (app.Construct(640, 360, 2, 2)){
 			app.Start();
 		}
 	}
