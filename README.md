@@ -42,3 +42,21 @@
   ```
   make run_windows
   ```
+
+## Keyboard
+
+Q -> zoom out <br>
+E -> zoom in <br>
+W, A, S, D -> move screen<br>
+C -> reset screen position and zoom<br>
+H -> Creates a big random 2D rectangle <br>
+J -> Creates a medium random 2D rectangle <br>
+K -> Creates a small random 2D rectangle <br>
+L -> Creates a smaller random 2D rectangle <br>
+B -> Creates a big random 1D rectangle <br>
+N -> Creates a medium random 1D rectangle <br>
+M -> Creates a small random 1D rectangle <br>
+U -> Insert rectangles with best fit <br>
+I -> Insert rectangles with first fit <br>
+O -> Insert rectangles with next fit <br>
+
