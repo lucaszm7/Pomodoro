@@ -261,16 +261,16 @@ public:
 		for (int c = 0; c < bins.size(); c++){
 			bins[c].moveItem(
 				olc::vu2d(
-					positions * (c + 1), 
-					(uint32_t) ScreenHeight() / 2
+					positions * (c + 1) - bin_width / 2, 
+					(uint32_t) ScreenHeight() / 2 - bin_height / 2
 				)
 			);
 		}
 		
 		new_bin.moveItem(
 			olc::vu2d(
-				positions * (bins.size() + 1),  
-				(uint32_t) ScreenHeight() / 2
+				positions * (bins.size() + 1) - bin_width / 2,  
+				(uint32_t) ScreenHeight() / 2 - bin_height / 2
 			)
 		);
 		if (new_bin.insert(item) == false) return false;
