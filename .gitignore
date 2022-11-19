@@ -5,3 +5,7 @@
 /app
 *.json
 .vscode/settings.json
+%vscode
+*.ilk
+*.obj
+*.pdb
