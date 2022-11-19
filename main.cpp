@@ -6,6 +6,8 @@
 #include "utils.hpp"
 #include <cmath>
 
+#define DEFAULT_BIN_SPACING 10
+
 struct Item
 {
 private:
@@ -171,6 +173,8 @@ public:
 
 	bool moveItem(olc::vu2d newPosition){
 		coordinates = newPosition;
+		// Have to move all the items
+
 		return true;
 	}
 
@@ -189,24 +193,30 @@ public:
 	}
 
 public:
-	Bin bin = Bin(64, 128);
+	uint32_t bin_width = 64;
+	uint32_t bin_height = 64;
+	std::vector<Bin> bins;
+
 	bool draw(float fElapsedTime)
 	{	
-		// Draw the bin
-		DrawRect(
-			bin.getLeftUpperCorner(),
-			bin.getSize()
-		);
-
-		// Draw each item in the bin
-		std::vector<Item> items = bin.getItemsInBin();
-
-		for (int c = 0; c < items.size(); c++){
-			FillRect(
-				items[c].getLeftUpperCorner(),
-				items[c].getSize(),
-				items[c].getColor()
+		for (int c = 0; c < bins.size(); c++){
+			Bin bin = bins[c];
+			// Draw the bin
+			DrawRect(
+				bin.getLeftUpperCorner(),
+				bin.getSize()
 			);
+
+			// Draw each item in the bin
+			std::vector<Item> items = bin.getItemsInBin();
+
+			for (int c = 0; c < items.size(); c++){
+				FillRect(
+					items[c].getLeftUpperCorner(),
+					items[c].getSize(),
+					items[c].getColor()
+				);
+			}
 		}
 		return true;
 	}
@@ -214,37 +224,38 @@ public:
 	bool OnUserCreate() override
 	{
 		// Called once at the start, so create things here
-		bin.moveItem({(uint32_t) ScreenWidth() / 3, (uint32_t) ScreenHeight() / 2});
-
-		std::cout << "Inserted: " << bin.insert(Item(32,48)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(31,28)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(14,2)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(16,32)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(8,32)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(16,8)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(2,14)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(32,24)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(14,8)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(15,12)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(15,12)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(22,7)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(22,7)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(15,12)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(48,36)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(3,10)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(12,8)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(7,22)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(1,48)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(6,10)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(6,10)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(5,32)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(4,36)) << "\n";
+		int items_to_pack = 20;
+		srand(time(NULL));
+		for (int c = 0; c < items_to_pack; c++){
+			std::cout << "Inserted: " << insert(Item((rand() % bin_height) + 1, (rand() % bin_width)+ 1)) << "\n";
+		}
 		return true;
 	}
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
 		draw(fElapsedTime);
+		return true;
+	}
+
+	bool insert(Item item){
+		if (item.getHeight() > bin_height || item.getWidth() > bin_width) return false;
+		for (int c = 0; c < bins.size(); c++){
+			if (bins[c].insert(item)) {
+				return true;
+			}
+		}
+
+		// Create new Bin
+		Bin new_bin = Bin(bin_height, bin_width);
+		new_bin.moveItem(
+			olc::vu2d(
+				(uint32_t) ScreenWidth() / 8 + ((bin_width + DEFAULT_BIN_SPACING) * bins.size()), 
+				(uint32_t) ScreenHeight() / 2
+			)
+		);
+		if (new_bin.insert(item) == false) return false;
+		bins.push_back(new_bin);
 		return true;
 	}
 };
