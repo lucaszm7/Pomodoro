@@ -123,11 +123,12 @@ public:
 		uint32_t item_width = item.getWidth();
 		uint32_t item_height = item.getHeight();
 		if (item_height > height || item_width > width) return false;
-		
+		if (item_height == 0 || item_width == 0) return false;
+
 		uint32_t offset_x = 0;
 		uint32_t offset_y = 0;
-		for (offset_x = 0; offset_x < (width - item_width); offset_x++) {
-			for (offset_y = 0; offset_y < (height - item_height); offset_y++){
+		for (offset_x = 0; offset_x <= (width - item_width); offset_x++) {
+			for (offset_y = 0; offset_y <= (height - item_height); offset_y++){
 				Segment cur_segment = Segment(offset_y, offset_y + item_height);
 			
 				// If this line has the segment free, then search on the adjacent lines for the same segment
@@ -173,7 +174,7 @@ public:
 		return true;
 	}
 
-	std::vector<Item> getItemsInBin(){
+	std::vector<Item>& getItemsInBin(){
 		return items;
 	}
 };
@@ -213,19 +214,31 @@ public:
 	bool OnUserCreate() override
 	{
 		// Called once at the start, so create things here
-		bin.moveItem({ScreenWidth() / 3, ScreenHeight() / 2});
+		bin.moveItem({(uint32_t) ScreenWidth() / 3, (uint32_t) ScreenHeight() / 2});
 
-		std::cout << "Inserted: " << bin.insert(Item(32,32)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(63,48)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(32,48)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(31,28)) << "\n";
 		std::cout << "Inserted: " << bin.insert(Item(14,2)) << "\n";
 		std::cout << "Inserted: " << bin.insert(Item(16,32)) << "\n";
 		std::cout << "Inserted: " << bin.insert(Item(8,32)) << "\n";
 		std::cout << "Inserted: " << bin.insert(Item(16,8)) << "\n";
 		std::cout << "Inserted: " << bin.insert(Item(2,14)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(14,2)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(14,2)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(14,2)) << "\n";
-
+		std::cout << "Inserted: " << bin.insert(Item(32,24)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(14,8)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(15,12)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(15,12)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(22,7)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(22,7)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(15,12)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(48,36)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(3,10)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(12,8)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(7,22)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(1,48)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(6,10)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(6,10)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(5,32)) << "\n";
+		std::cout << "Inserted: " << bin.insert(Item(4,36)) << "\n";
 		return true;
 	}
 
