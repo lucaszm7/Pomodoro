@@ -46,6 +46,10 @@ public:
 	olc::Pixel getColor() const {
 		return color;
 	}
+
+	uint32_t getArea() {
+		return widht * heigth;
+	}
 };
 
 struct Segment
@@ -104,6 +108,8 @@ private:
 	uint32_t height = 0;
 	uint32_t width = 0;
 
+	uint32_t area_free = 0;
+
 	olc::vu2d coordinates = {0, 0};
 	std::vector<Item> items;
 	std::vector<Line> lines;
@@ -116,6 +122,8 @@ public:
 		for (int c = 0; c < width; c++) {
 			lines.push_back(Line(Segment(0, height)));
 		}
+
+		area_free = width * height;
 	}
 
 	bool insert (Item item)
@@ -124,6 +132,7 @@ public:
 		uint32_t item_height = item.getHeight();
 		if (item_height > height || item_width > width) return false;
 		if (item_height == 0 || item_width == 0) return false;
+		if (area_free < item.getArea()) return false;
 
 		for (uint32_t offset_x = 0; offset_x <= (width - item_width); offset_x++) {
 			for (uint32_t offset_y = 0; offset_y <= (height - item_height); offset_y++){
@@ -148,6 +157,8 @@ public:
 							lines[c + offset_x].removeSegment(cur_segment);
 						}
 
+
+						area_free = area_free - item.getWidth() * item.getHeight();
 						return true;
 					}
 				}
@@ -167,13 +178,28 @@ public:
 		return olc::vu2d(width, height);
 	}
 
-	bool moveItem(olc::vu2d newPosition) {
+	bool moveItem(olc::vu2d newPosition){
+		int32_t offset_x = newPosition.x - coordinates.x;
+		int32_t offset_y = newPosition.y - coordinates.y;
 		coordinates = newPosition;
+		// Have to move all the items
+		for (int c = 0; c < items.size(); c++){
+			items[c].moveItem(
+				olc::vu2d(
+					items[c].getLeftUpperCorner().x + offset_x,
+					items[c].getLeftUpperCorner().y + offset_y
+				)
+			);
+		}
 		return true;
 	}
 
 	const std::vector<Item>& getItemsInBin() const {
 		return items;
+	}
+
+	uint32_t getArea() {
+		return width * height;
 	}
 };
 
@@ -220,31 +246,21 @@ public:
 	bool OnUserCreate() override
 	{
 		// Called once at the start, so create things here
-		bin.moveItem({(uint32_t) ScreenWidth() / 3, (uint32_t) ScreenHeight() / 2});
+		int big_items_to_pack = 10;
+		int medium_items_to_pack = 20;
+		int small_items_to_pack = 100;
+		srand(time(NULL));
+		
+		for (int c = 0; c < big_items_to_pack; c++){
+			std::cout << "Inserted: " << insert(Item((rand() % (bin_height)) + 1, (rand() % (bin_width))+ 1)) << "\n";
+		}
+		for (int c = 0; c < medium_items_to_pack; c++){
+			std::cout << "Inserted: " << insert(Item((rand() % (bin_height / 2)) + 1, (rand() % (bin_width / 2))+ 1)) << "\n";
+		}
+		for (int c = 0; c < small_items_to_pack; c++){
+			std::cout << "Inserted: " << insert(Item((rand() % (bin_height / 4)) + 1, (rand() % (bin_width / 4))+ 1)) << "\n";
+		}
 
-		std::cout << "Inserted: " << bin.insert(Item(32,48)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(31,28)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(14,2)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(16,32)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(8,32)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(16,8)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(2,14)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(32,24)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(14,8)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(15,12)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(15,12)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(22,7)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(22,7)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(15,12)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(48,36)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(3,10)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(12,8)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(7,22)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(1,48)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(6,10)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(6,10)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(5,32)) << "\n";
-		std::cout << "Inserted: " << bin.insert(Item(4,36)) << "\n";
 		return true;
 	}
 
@@ -281,6 +297,7 @@ public:
 		return true;
 	}
 
+
 protected:
 	protected:
     // Pan & Zoom variables
@@ -299,6 +316,40 @@ protected:
 	{
 		s.x = (int)((w.x - vOffset.x) * vScale.x);
 		s.y = (int)((w.y - vOffset.y) * vScale.y);
+	}
+
+
+	bool insert(Item item){
+		if (item.getHeight() > bin_height || item.getWidth() > bin_width) return false;
+		for (int c = 0; c < bins.size(); c++){
+			if (bins[c].insert(item)) {
+				return true;
+			}
+		}
+
+		// Create new Bin
+		Bin new_bin = Bin(bin_height, bin_width);
+		
+		// Move all bins before
+		uint32_t positions = (uint32_t) ScreenWidth() / (bins.size() + 2);
+		for (int c = 0; c < bins.size(); c++){
+			bins[c].moveItem(
+				olc::vu2d(
+					positions * (c + 1) - bin_width / 2, 
+					(uint32_t) ScreenHeight() / 2 - bin_height / 2
+				)
+			);
+		}
+		
+		new_bin.moveItem(
+			olc::vu2d(
+				positions * (bins.size() + 1) - bin_width / 2,  
+				(uint32_t) ScreenHeight() / 2 - bin_height / 2
+			)
+		);
+		if (new_bin.insert(item) == false) return false;
+		bins.push_back(new_bin);
+		return true;
 	}
 
 };
