@@ -250,9 +250,9 @@ public:
 	bool OnUserCreate() override
 	{
 		// Called once at the start, so create things here
-		int big_items_to_pack = 500;
-		int medium_items_to_pack = 2000;
-		int small_items_to_pack = 10000;
+		int big_items_to_pack = 50;
+		int medium_items_to_pack = 100;
+		int small_items_to_pack = 500;
 		srand(time(NULL));
 		
 		// Measure the time to pack
