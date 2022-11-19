@@ -210,8 +210,8 @@ public:
 			Bin bin = bins[c];
 			// Draw the bin
 			DrawRect(
-				bin.getLeftUpperCorner(),
-				bin.getSize()
+				bin.getLeftUpperCorner() - olc::vu2d(1, 1),
+				bin.getSize() + olc::vu2d(1, 1)
 			);
 
 			// Draw each item in the bin
