@@ -253,8 +253,19 @@ public:
 			percentageStream << std::fixed << std::setprecision(2) << percentage;
 			std::string binPercentageUsage = "Usage: " + percentageStream.str() + "%";
 			DrawString(binBL, binPercentageUsage, olc::YELLOW, 1 * (vScale.x + 0.5));
-
 		}
+
+		if(vRectDraw)
+		{
+			olc::vi2d newItemTLafter;
+			olc::vi2d newItemBRafter;
+
+			WorldToScreen(vRectStart, newItemTLafter);
+			WorldToScreen(vRectNow, newItemBRafter);
+
+			DrawRect(newItemTLafter, newItemBRafter - newItemTLafter, olc::RED);
+		}
+
 		return true;
 	}
 
@@ -324,9 +335,38 @@ public:
 		Draw(fElapsedTime);
 		OnHandleZoom(fElapsedTime);
 		OnGui();
+
+		olc::vd2d vMouseScreen = {(double)GetMouseX(), (double)GetMouseY()};
+		olc::vd2d vMouseWorld;
+        ScreenToWorld(vMouseScreen, vMouseWorld);
+
+		if(GetMouse(1).bPressed)
+        {
+			vRectDraw = true;
+            vRectStart = vMouseWorld;
+			vRectNow = vRectStart;
+        }
+
+        if(GetMouse(1).bHeld)
+        {
+            vRectNow = vMouseWorld;
+        }
+
+		if(GetMouse(1).bReleased)
+		{
+			vRectDraw = false;
+			insert(Item(std::abs(vRectStart.y - vRectNow.y), std::abs(vRectStart.x - vRectNow.x)));
+			vRectStart = {0,0};
+			vRectNow   = {0,0};
+		}
+
 		return true;
 	}
 
+protected:
+	bool vRectDraw = false;
+	olc::vd2d vRectStart;
+	olc::vd2d vRectNow;
 
 protected:
     // Pan & Zoom variables
