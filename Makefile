@@ -9,8 +9,11 @@ all: $(FILE).cpp linux
 linux: $(FILE).cpp
 	$(CXX) $(CXXFLAGS) $(FILE).cpp $(LFLAGS) -o app
 
-msvc: $(FILE).cpp
+msvc_release: $(FILE).cpp
 	cl /EHsc /openmp:llvm /O2 /Ot /std:c++17 /arch:AVX2 $(FILE).cpp
+
+msvc_debug: $(FILE).cpp
+	cl /EHsc /openmp:llvm /Ot /std:c++17 /arch:AVX2 $(FILE).cpp
 
 windows: $(FILE).cpp
 	$(CXX) $(CXXFLAGS) $(FILE).cpp $(WFLAGS) -o app
