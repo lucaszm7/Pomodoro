@@ -2,9 +2,13 @@
 #include "olcPixelGameEngine.h"
 
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <algorithm>
 #include "utils.hpp"
 #include <cmath>
+#include <string>
+#include <vector>
 
 struct Item
 {
@@ -136,7 +140,15 @@ public:
 		for (int c = 0; c < width; c++) {
 			lines.push_back(Line(Segment(0, height)));
 		}
+		area_free = width * height;
+	}
 
+	Bin(olc::vu2d coor, olc::vu2d size) 
+		: coordinates(coor), width(size.x), height(size.y)
+	{
+		for (int c = 0; c < width; c++) {
+			lines.push_back(Line(Segment(0, height)));
+		}
 		area_free = width * height;
 	}
 
@@ -221,7 +233,8 @@ public:
 		return items;
 	}
 
-	uint32_t getArea() {
+	uint32_t getArea() const
+	{
 		return width * height;
 	}
 
@@ -253,7 +266,7 @@ public:
 	{
 		Clear(olc::VERY_DARK_BLUE);
 
-		for(const auto& bin : bins)
+		for(auto& bin : bins)
 		{
 			olc::vd2d binTLbefore = bin.getLeftUpperCorner() - olc::vi2d(1,1);
 			olc::vd2d binBRbefore = bin.getRightBottomCorner() + olc::vi2d(1,1);
@@ -267,6 +280,13 @@ public:
 			FillRect(binTLafter, binBRafter - binTLafter, olc::BLACK);
 			DrawRect(binTLafter, binBRafter - binTLafter, olc::WHITE);
 
+			olc::vi2d binBL(binTLafter.x, binBRafter.y + 10);
+			double percentage = 100.0 * ((double)bin.getArea() - (double)bin.getAreaFree()) / (double)bin.getArea();
+			std::stringstream percentageStream;
+			percentageStream << std::fixed << std::setprecision(2) << percentage;
+			std::string binPercentageUsage = "Usage: " + percentageStream.str() + "%";
+			DrawString(binBL, binPercentageUsage, olc::YELLOW, 1 * (vScale.x + 0.5));
+
 			olc::vi2d itemTLafter;
 			olc::vi2d itemBRafter;
 			for(const auto& item : bin.getItemsInBin())
@@ -275,14 +295,6 @@ public:
 				WorldToScreen(item.getRightBottomCorner(), itemBRafter);
 				FillRect(itemTLafter, itemBRafter - itemTLafter, item.getColor());
 			}
-
-			for(const auto& item : items_buffer)
-			{
-				WorldToScreen(item.getLeftUpperCorner(), itemTLafter);
-				WorldToScreen(item.getRightBottomCorner(), itemBRafter);
-				FillRect(itemTLafter, itemBRafter - itemTLafter, item.getColor());
-			} 
-
 		}
 		for(int c = 0; c < items_buffer.size(); c++)
 		{
@@ -292,6 +304,56 @@ public:
 			WorldToScreen(items_buffer[c].getRightBottomCorner(), itemBRafter);
 			FillRect(itemTLafter, itemBRafter - itemTLafter, items_buffer[c].getColor());
 		} 
+			
+
+
+		if(vRectDraw)
+		{
+			olc::vi2d newItemTLafter;
+			olc::vi2d newItemBRafter;
+
+			WorldToScreen(vRectStart, newItemTLafter);
+			WorldToScreen(vRectNow, newItemBRafter);
+
+			DrawRect(newItemTLafter, newItemBRafter - newItemTLafter, olc::RED);
+		}
+
+		return true;
+	}
+
+	void OnHandleZoom(float fElapsedTime)
+	{
+		// Panning and Zoomig, credits to @OneLoneCoder who i'am inpired for
+        olc::vd2d vMouse = {(double)GetMouseX(), (double)GetMouseY()};
+
+        // Get the position of the mouse and move the world Final Pos - Inital Pos
+        // This make us drag Around the Screen Space, with the OffSet variable
+        if(GetMouse(0).bPressed)
+        {
+            vStartPan = vMouse;
+        }
+
+        if(GetMouse(0).bHeld)
+        {
+            vOffset -= (vMouse - vStartPan) / vScale;
+            vStartPan = vMouse;
+        }
+
+        olc::vd2d vMouseBeforeZoom;
+        ScreenToWorld(vMouse, vMouseBeforeZoom);
+
+		if (GetKey(olc::Key::E).bHeld) 
+			vScale *= 1 + (1.1 * fElapsedTime);
+		if (GetKey(olc::Key::Q).bHeld) 
+			vScale *= 1 - (0.9 * fElapsedTime);
+		
+		olc::vd2d vMouseAfterZoom;
+		ScreenToWorld(vMouse, vMouseAfterZoom);
+		vOffset += (vMouseBeforeZoom - vMouseAfterZoom);
+	}
+
+	bool OnGui()
+	{
 		return true;
 	}
 
@@ -326,25 +388,25 @@ public:
 	bool OnUserUpdate(float fElapsedTime) override
 	{
 		Draw(fElapsedTime);
+		OnHandleZoom(fElapsedTime);
+		OnGui();
 
-		// Panning and Zoomig, credits to @OneLoneCoder who i'am inpired for
-        olc::vd2d vMouse = {(double)GetMouseX(), (double)GetMouseY()};
+		olc::vd2d vMouseScreen = {(double)GetMouseX(), (double)GetMouseY()};
+		olc::vd2d vMouseWorld;
+        ScreenToWorld(vMouseScreen, vMouseWorld);
 
-        // Get the position of the mouse and move the world Final Pos - Inital Pos
-        // This make us drag Around the Screen Space, with the OffSet variable
-        if(GetMouse(0).bPressed)
+		if(GetMouse(1).bPressed)
         {
-            vStartPan = vMouse;
+			vRectDraw = true;
+            vRectStart = vMouseWorld;
+			vRectNow = vRectStart;
         }
 
-        if(GetMouse(0).bHeld)
+        if(GetMouse(1).bHeld)
         {
-            vOffset -= (vMouse - vStartPan) / vScale;
-            vStartPan = vMouse;
+            vRectNow = vMouseWorld;
         }
 		
-		if (GetKey(olc::Key::E).bHeld) vScale *= 1.01; 
-		if (GetKey(olc::Key::Q).bHeld) vScale *= 0.99;
 		
 		if (GetKey(olc::Key::A).bHeld)	vOffset -= olc::vd2d(2.0, 0.0) / vScale;
 		if (GetKey(olc::Key::D).bHeld)	vOffset += olc::vd2d(2.0, 0.0) / vScale;
@@ -403,6 +465,14 @@ public:
 		// Reset screen position
 		if (GetKey(olc::Key::C).bPressed) resetScreenPosition();
 
+		if(GetMouse(1).bReleased)
+		{
+			vRectDraw = false;
+			addItemToBuffer(Item(std::abs(vRectStart.y - vRectNow.y), std::abs(vRectStart.x - vRectNow.x)));
+			vRectStart = {0,0};
+			vRectNow   = {0,0};
+		}
+
 		return true;
 	}
 
@@ -423,9 +493,12 @@ public:
 		vScale = { 1.0, 1.0 };
 	}
 
+protected:
+	bool vRectDraw = false;
+	olc::vd2d vRectStart;
+	olc::vd2d vRectNow;
 
 protected:
-	protected:
     // Pan & Zoom variables
 	olc::vd2d vOffset = { 0.0, 0.0 };
 	olc::vd2d vStartPan = { 0.0, 0.0 };
@@ -491,6 +564,10 @@ protected:
 		new_bin.moveItem(olc::vi2d((bins.size() + 1) * (bin_width + 20), (uint32_t) ScreenHeight() / 2 - bin_height / 2));
 		
 		bins.push_back(new_bin);
+		// olc::vu2d new_bin_coord((bins.size() + 1) * (bin_width + 20), (uint32_t) ScreenHeight() / 2 - bin_height / 2);
+		// olc::vu2d new_bin_size(bin_width, bin_height);
+		// bins.emplace_back(new_bin_coord, new_bin_size);
+		// if (!bins.back().insert(item)) return false;
 		return true;
 	}
 
