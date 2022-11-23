@@ -408,10 +408,10 @@ public:
         }
 		
 		
-		if (GetKey(olc::Key::A).bHeld)	vOffset -= olc::vd2d(2.0, 0.0) / vScale;
-		if (GetKey(olc::Key::D).bHeld)	vOffset += olc::vd2d(2.0, 0.0) / vScale;
-		if (GetKey(olc::Key::W).bHeld) 	vOffset -= olc::vd2d(0.0, 2.0) / vScale;
-		if (GetKey(olc::Key::S).bHeld)	vOffset += olc::vd2d(0.0, 2.0) / vScale;
+		if (GetKey(olc::Key::A).bHeld)	vOffset -= (olc::vd2d(2.0, 0.0) / vScale) * fElapsedTime * 100;
+		if (GetKey(olc::Key::D).bHeld)	vOffset += (olc::vd2d(2.0, 0.0) / vScale) * fElapsedTime * 100;
+		if (GetKey(olc::Key::W).bHeld) 	vOffset -= (olc::vd2d(0.0, 2.0) / vScale) * fElapsedTime * 100;
+		if (GetKey(olc::Key::S).bHeld)	vOffset += (olc::vd2d(0.0, 2.0) / vScale) * fElapsedTime * 100;
 
 		// Add items to the buffer
 		if (GetKey(olc::Key::H).bPressed) {

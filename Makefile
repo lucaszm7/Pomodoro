@@ -7,7 +7,7 @@ FILE = main
 all: $(FILE).cpp linux
 
 linux: $(FILE).cpp
-	$(CXX) $(CXXFLAGS) $(FILE).cpp $(LFLAGS) -o app
+	$(CXX) $(CXXFLAGS) $(FILE).cpp $(LFLAGS) -o $(FILE)
 
 msvc_release: $(FILE).cpp
 	cl /EHsc /openmp:llvm /O2 /Ot /std:c++17 /arch:AVX2 $(FILE).cpp
@@ -16,13 +16,13 @@ msvc_debug: $(FILE).cpp
 	cl /EHsc /openmp:llvm /Ot /std:c++17 /arch:AVX2 $(FILE).cpp
 
 windows: $(FILE).cpp
-	$(CXX) $(CXXFLAGS) $(FILE).cpp $(WFLAGS) -o app
+	$(CXX) $(CXXFLAGS) $(FILE).cpp $(WFLAGS) -o $(FILE)
 
-run: app
-	./app
+run: $(FILE)
+	./$(FILE)
 
-run_windows: app.exe
-	./app.exe
+run_windows: $(FILE).exe
+	./$(FILE).exe
 
 install:
 	sudo apt-get install build-essential libglu1-mesa-dev libpng-dev libmpich12
