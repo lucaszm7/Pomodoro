@@ -1,5 +1,6 @@
 /.vscode
 .vscode/
+bin/
 /logs
 /*.exe
 /app

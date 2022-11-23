@@ -1,11 +1,11 @@
 #define OLC_PGE_APPLICATION 
-#include "olcPixelGameEngine.h"
+#include "include/olcPixelGameEngine.h"
+#include "include/utils.hpp"
 
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
-#include "utils.hpp"
 #include <cmath>
 #include <string>
 #include <vector>

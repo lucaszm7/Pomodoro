@@ -2,27 +2,28 @@ CXX = g++
 CXXFLAGS = -fopenmp
 LFLAGS = -lX11 -lGL -lpthread -lpng -lstdc++fs -std=c++17 -O3 -mavx2 
 WFLAGS = -luser32 -lgdi32 -lopengl32 -lgdiplus -lShlwapi -ldwmapi -lstdc++fs -static -std=c++17 -O3 -mavx2 
+WINPATH = src
 FILE = main
 
-all: $(FILE).cpp linux
+all: msvc_debug run_windows
 
-linux: $(FILE).cpp
-	$(CXX) $(CXXFLAGS) $(FILE).cpp $(LFLAGS) -o $(FILE)
+linux: $(WINPATH)/$(FILE).cpp
+	$(CXX) $(CXXFLAGS) $(WINPATH)/$(FILE).cpp $(LFLAGS) -o bin/$(FILE)
 
-msvc_release: $(FILE).cpp
-	cl /EHsc /openmp:llvm /O2 /Ot /std:c++17 /arch:AVX2 $(FILE).cpp
+msvc_release: $(WINPATH)/$(FILE).cpp
+	cl /EHsc /openmp:llvm /O2 /Ot /std:c++17 /arch:AVX2 $(WINPATH)/$(FILE).cpp /Fdbin\vc100.pdb /Fobin\ /Fabin\ /link /out:bin\main.exe /pdb:bin\
 
-msvc_debug: $(FILE).cpp
-	cl /EHsc /openmp:llvm /Ot /std:c++17 /arch:AVX2 $(FILE).cpp
+msvc_debug: $(WINPATH)/$(FILE).cpp
+	cl /EHsc /openmp:llvm /Ot /std:c++17 /arch:AVX2 $(WINPATH)/$(FILE).cpp /Fdbin\vc100.pdb /Fobin\ /Fabin\ /link /out:bin\main.exe /pdb:bin\
 
-windows: $(FILE).cpp
-	$(CXX) $(CXXFLAGS) $(FILE).cpp $(WFLAGS) -o $(FILE)
+windows: $(WINPATH)/$(FILE).cpp
+	$(CXX) $(CXXFLAGS) $(WINPATH)/$(FILE).cpp $(WFLAGS) -o bin/$(FILE)
 
-run: $(FILE)
-	./$(FILE)
+run: bin/$(FILE)
+	./bin/$(FILE)
 
-run_windows: $(FILE).exe
-	./$(FILE).exe
+run_windows: bin/$(FILE).exe
+	./bin/$(FILE).exe
 
 install:
 	sudo apt-get install build-essential libglu1-mesa-dev libpng-dev libmpich12
