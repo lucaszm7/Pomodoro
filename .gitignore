@@ -2,7 +2,7 @@
 .vscode/
 bin/
 /logs
-/*.exe
+*.exe
 /app
 *.json
 .vscode/settings.json

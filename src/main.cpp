@@ -1,6 +1,9 @@
 #define OLC_PGE_APPLICATION 
 #include "include/olcPixelGameEngine.h"
 #include "include/utils.hpp"
+#include "include/item.hpp"
+#include "include/line.hpp"
+#include "include/bin.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -10,244 +13,6 @@
 #include <string>
 #include <vector>
 
-struct Item
-{
-private:
-	uint32_t widht = 0;
-	uint32_t heigth = 0;
-	olc::vi2d coordinates = {0,0};
-	olc::Pixel color;
-public:
-	Item(uint32_t height_value, uint32_t width_value)
-		: widht(width_value), heigth(height_value) {
-			color = olc::Pixel(rand() % 255, rand() % 255, rand() % 255);
-			
-			// Prevent a rectangle of having the same color as the bin background
-			if (color == olc::BACK) color = olc::WHITE;
-		}
-
-	uint32_t getHeight(){
-		return heigth;
-	}
-	uint32_t getWidth(){
-		return widht;
-	}
-
-	bool moveItem(olc::vi2d newPosition){
-		coordinates = newPosition;
-		return true;
-	}
-
-	olc::vi2d getLeftUpperCorner() const {
-		return coordinates;
-	}
-
-	olc::vi2d getRightBottomCorner() const {
-		return olc::vi2d(coordinates.x + widht, coordinates.y + heigth);
-	}
-
-	olc::vi2d getSize() const {
-		return olc::vi2d(widht, heigth);
-	}
-
-	olc::Pixel getColor() const {
-		return color;
-	}
-
-	uint32_t getArea() {
-		return widht * heigth;
-	}
-};
-
-struct Segment
-{
-public:
-	uint32_t start = 0;
-	uint32_t end = 0;
-	Segment(uint32_t start, uint32_t end)
-		:start(start), end(end)	{}
-	uint32_t getSize() const {
-		return end - start;
-	}
-};
-
-struct Line
-{
-private:
-	std::vector<Segment> free_segments;
-	uint32_t sum_of_segments_free = 0;
-public:
-	Line(Segment size) {
-		free_segments.push_back(size);
-		sum_of_segments_free = size.getSize();
-	}
-
-	bool removeSegment(Segment segment_to_remove){
-		int indexSegment = containsSegment(segment_to_remove);
-		if (indexSegment != -1){
-			// Check if the segment to remove is in the start 
-			if (segment_to_remove.start == free_segments[indexSegment].start){
-				free_segments[indexSegment].start = segment_to_remove.end;
-			}
-			// Check if the segment to remove is in the finish
-			else if (segment_to_remove.end == free_segments[indexSegment].end){
-				free_segments[indexSegment].end = segment_to_remove.start;
-			}
-			// Split the segment in two
-			else {
-				free_segments.push_back(Segment(segment_to_remove.end, free_segments[indexSegment].end));
-				free_segments[indexSegment].end = segment_to_remove.start;
-			}
-			sum_of_segments_free -= segment_to_remove.getSize();
-			return true;
-		}
-		return false;
-	}
-
-	// Returns the index of the first segment that can fit, returns -1 if the line doesnt contain the segment
-	int containsSegment(Segment segment) {
-		if (sum_of_segments_free < segment.getSize()) return -1;
-		for (int c = 0; c < free_segments.size(); c++){
-			if (free_segments[c].start <= segment.start && free_segments[c].end >= segment.end){
-				return c;
-			}
-		}
-		return -1;
-	}
-
-	uint32_t getSumOfSegmentsFree() const {
-		return sum_of_segments_free;
-	}
-};
-
-struct Bin
-{
-private:
-	uint32_t height = 0;
-	uint32_t width = 0;
-
-	uint32_t area_free = 0;
-
-	olc::vi2d coordinates = {0, 0};
-	std::vector<Item> items;
-	std::vector<Line> lines;
-
-public:
-	Bin(uint32_t height, uint32_t width) 
-		: height(height), width(width)
-	{
-		// Create the vertical lines
-		for (int c = 0; c < width; c++) {
-			lines.push_back(Line(Segment(0, height)));
-		}
-		area_free = width * height;
-	}
-
-	Bin(olc::vu2d coor, olc::vu2d size) 
-		: coordinates(coor), width(size.x), height(size.y)
-	{
-		for (int c = 0; c < width; c++) {
-			lines.push_back(Line(Segment(0, height)));
-		}
-		area_free = width * height;
-	}
-
-	bool insert (Item item)
-	{
-		uint32_t item_width = item.getWidth();
-		uint32_t item_height = item.getHeight();
-		if (item_height > height || item_width > width) return false;
-		if (item_height == 0 || item_width == 0) return false;
-		if (area_free < item.getArea()) return false;
-
-		for (uint32_t offset_x = 0; offset_x <= (width - item_width); offset_x++) {
-			
-			// Checks if the adjacent lines have at least the height that is needed to fit the item
-			bool allLinesHaveSpace = true;
-			for (int c = 0; c < item_width; c++) {
-				if (lines[c + offset_x].getSumOfSegmentsFree() < item_height) {
-					allLinesHaveSpace = false;
-					offset_x = c + offset_x;
-					break;
-				}
-			}
-
-			if (allLinesHaveSpace){
-				for (uint32_t offset_y = 0; offset_y <= (height - item_height); offset_y++){
-					Segment cur_segment = Segment(offset_y, offset_y + item_height);
-
-					// If this line has the segment free, then search on the adjacent lines for the same segment
-					bool allLinesHaveSegment = true;
-					for(int c = 0; c < item_width; c++) {
-						if (lines[c + offset_x].containsSegment(cur_segment) == -1) {
-							allLinesHaveSegment = false;
-							break;
-						}
-					}
-					if (allLinesHaveSegment){
-						item.moveItem(olc::vi2d(offset_x+coordinates.x, offset_y+coordinates.y));
-						items.push_back(item);
-
-						// remove the segment from all lines
-						for (int c = 0; c < item_width; c++){
-							lines[c + offset_x].removeSegment(cur_segment);
-						}
-
-						area_free = area_free - item.getWidth() * item.getHeight();
-						return true;
-					}
-				}
-			}
-		}
-
-		return false;
-	}
-
-	olc::vi2d getLeftUpperCorner() const {
-		return coordinates;
-	}
-	olc::vi2d getRightBottomCorner() const {
-		return olc::vi2d(coordinates.x + width, coordinates.y + height);
-	}
-	olc::vi2d getSize() const {
-		return olc::vi2d(width, height);
-	}
-
-	bool moveItem(olc::vi2d newPosition){
-		int32_t offset_x = newPosition.x - coordinates.x;
-		int32_t offset_y = newPosition.y - coordinates.y;
-		coordinates = newPosition;
-		// Have to move all the items
-		for (int c = 0; c < items.size(); c++){
-			items[c].moveItem(
-				olc::vi2d(
-					items[c].getLeftUpperCorner().x + offset_x,
-					items[c].getLeftUpperCorner().y + offset_y
-				)
-			);
-		}
-		return true;
-	}
-
-	const std::vector<Item>& getItemsInBin() const {
-		return items;
-	}
-
-	uint32_t getArea() const
-	{
-		return width * height;
-	}
-
-	uint32_t getAreaFree() {
-		return area_free;
-	}
-
-	uint32_t getAreaUsed() {
-		return (width * height) - area_free;
-	}
-};
-
-
 class BinPacking2D : public olc::PixelGameEngine
 {
 public:
@@ -255,6 +20,8 @@ public:
 	uint32_t bin_height = 256;
 	std::vector<Bin> bins;
 	std::vector<Item> items_buffer;
+
+	bool toggleHelp = true;
 
 	BinPacking2D()
 	{
@@ -296,6 +63,26 @@ public:
 				FillRect(itemTLafter, itemBRafter - itemTLafter, item.getColor());
 			}
 		}
+
+		olc::vi2d bufferTLbefore = {0,0};
+		olc::vi2d bufferTLafter =  {0,0};
+		olc::vi2d bufferBRbefore = {0,0};
+		olc::vi2d bufferBRafter =  {0,0};
+		if(!items_buffer.empty())
+		{
+			bufferTLbefore = items_buffer.front().getLeftUpperCorner();
+			int maxY = 0;
+			for(const auto& item : items_buffer)
+			{
+				if(item.getHeight() > maxY) maxY = item.getHeight();
+			}
+			bufferBRbefore.x = items_buffer.back().getRightBottomCorner().x;
+			bufferBRbefore.y = items_buffer.back().getLeftUpperCorner().y + maxY;
+		}
+		WorldToScreen(bufferTLbefore, bufferTLafter);
+		WorldToScreen(bufferBRbefore, bufferBRafter);
+		FillRect(bufferTLafter, bufferBRafter - bufferTLafter, olc::BLACK);
+		DrawRect(bufferTLafter - olc::vi2d(1,1), (bufferBRafter - bufferTLafter) + olc::vi2d(1,1), olc::WHITE);
 		for(int c = 0; c < items_buffer.size(); c++)
 		{
 			olc::vi2d itemTLafter;
@@ -305,8 +92,6 @@ public:
 			FillRect(itemTLafter, itemBRafter - itemTLafter, items_buffer[c].getColor());
 		} 
 			
-
-
 		if(vRectDraw)
 		{
 			olc::vi2d newItemTLafter;
@@ -352,44 +137,33 @@ public:
 		vOffset += (vMouseBeforeZoom - vMouseAfterZoom);
 	}
 
-	bool OnGui()
+	bool OnGui(float fElapsedTime)
 	{
+        if(toggleHelp)
+        {
+            DrawString(0, 10, "Controles e Ajuda - H:" ,                      olc::Pixel(0, 255, 47), 1);
+            DrawString(0, 20, "====== Usabilidade ======",          olc::WHITE, 1);
+            DrawString(0, 30, "W | A | S | D - Navegacao",                          olc::WHITE, 1);
+            DrawString(0, 40, "Q | E - Zoom",                                   olc::WHITE, 1);
+            DrawString(0, 50, "C - Reseta camera",                 olc::WHITE, 1);
+            DrawString(0, 60, "Botao Esquerdo - Navegacao",                   olc::WHITE, 1);
+            DrawString(0, 70, "Botao Direito - Cria item",          olc::WHITE, 1);
+            DrawString(0, 90, "====== Atualiza Fila ======",          olc::WHITE, 1);
+            DrawString(0, 100,  "J | K | L - 2D: G, M, P", olc::WHITE, 1);
+            DrawString(0, 110, "B | N | M - 1D: G, M, P", olc::WHITE, 1);
+            DrawString(0, 130, "====== Insere Fila ======",          olc::WHITE, 1);
+            DrawString(0, 140, "U | I | O - Best, First, Next Fit",     olc::WHITE, 1);
+        }
+
+        DrawString(ScreenWidth() - 635, ScreenHeight() - 20, "Jelson Rodrigues - Juathan Duarte - Lucas Morais", olc::Pixel(255,255,255,123), 1);
+        DrawString(ScreenWidth() - 660, ScreenHeight() - 10, "2D BinPacking - github.com/lucaszm7/AED3_Bin_Packing", olc::Pixel(255,255,255,123), 1);
 		return true;
 	}
 
-	bool OnUserCreate() override
+	bool OnHandleControls(float fElapsedTime)
 	{
-		// Called once at the start, so create things here
-		int big_items_to_pack = 10;
-		int medium_items_to_pack = 20;
-		int small_items_to_pack = 15;
-		srand(time(NULL));
-		
-		// Measure the time to pack
-		Timer T = Timer();
-		for (int c = 0; c < big_items_to_pack; c++){
-			// addItemToBuffer(Item((rand() % (bin_height)) + 1, (rand() % (bin_width))+ 1));
-			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height)) + 1, (rand() % (bin_width))+ 1)) << "\n";
-		}
-		for (int c = 0; c < medium_items_to_pack; c++){
-			// addItemToBuffer(Item((rand() % (bin_height / 2)) + 1, (rand() % (bin_width / 2))+ 1));
-			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height / 2)) + 1, (rand() % (bin_width / 2))+ 1)) << "\n";
-		}
-		for (int c = 0; c < small_items_to_pack; c++){
-			// addItemToBuffer(Item((rand() % (bin_height / 4)) + 1, (rand() % (bin_width / 4))+ 1));
-			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height / 4)) + 1, (rand() % (bin_width / 4))+ 1)) << "\n";
-		}
-
-		std::cout << "Time Taken: " << T.now() << "s\n";
-
-		return true;
-	}
-
-	bool OnUserUpdate(float fElapsedTime) override
-	{
-		Draw(fElapsedTime);
-		OnHandleZoom(fElapsedTime);
-		OnGui();
+		if (GetKey(olc::Key::H).bReleased)
+			toggleHelp = !toggleHelp;
 
 		olc::vd2d vMouseScreen = {(double)GetMouseX(), (double)GetMouseY()};
 		olc::vd2d vMouseWorld;
@@ -407,16 +181,12 @@ public:
             vRectNow = vMouseWorld;
         }
 		
-		
 		if (GetKey(olc::Key::A).bHeld)	vOffset -= (olc::vd2d(2.0, 0.0) / vScale) * fElapsedTime * 100;
 		if (GetKey(olc::Key::D).bHeld)	vOffset += (olc::vd2d(2.0, 0.0) / vScale) * fElapsedTime * 100;
 		if (GetKey(olc::Key::W).bHeld) 	vOffset -= (olc::vd2d(0.0, 2.0) / vScale) * fElapsedTime * 100;
 		if (GetKey(olc::Key::S).bHeld)	vOffset += (olc::vd2d(0.0, 2.0) / vScale) * fElapsedTime * 100;
 
 		// Add items to the buffer
-		if (GetKey(olc::Key::H).bPressed) {
-			addItemToBuffer(Item((rand() % (bin_height / 1)) + 1, (rand() % (bin_width / 1))+ 1));
-		}
 		if (GetKey(olc::Key::J).bPressed) {
 			addItemToBuffer(Item((rand() % (bin_height / 2)) + 1, (rand() % (bin_width / 2))+ 1));
 		}
@@ -438,6 +208,14 @@ public:
 			addItemToBuffer(Item((rand() % (bin_height / 4)) + 1, bin_width ));
 		}
 
+		// Add all items in the buffer to the bins with best fit strategy
+		if (GetKey(olc::Key::U).bPressed) {
+			for (const auto& item: items_buffer){
+				std::cout << "Inserted: " << bestFit(item) << "\n";
+			}
+			items_buffer.clear();
+		}
+
 		// Add all items in the buffer to the bins with first fit strategy
 		if (GetKey(olc::Key::I).bPressed) {
 			for (const auto& item: items_buffer){
@@ -454,14 +232,6 @@ public:
 			items_buffer.clear();
 		}
 
-		// Add all items in the buffer to the bins with best fit strategy
-		if (GetKey(olc::Key::U).bPressed) {
-			for (const auto& item: items_buffer){
-				std::cout << "Inserted: " << bestFit(item) << "\n";
-			}
-			items_buffer.clear();
-		}
-
 		// Reset screen position
 		if (GetKey(olc::Key::C).bPressed) resetScreenPosition();
 
@@ -473,6 +243,40 @@ public:
 			vRectNow   = {0,0};
 		}
 
+		return true;
+	}
+
+	bool OnUserCreate() override
+	{
+		// Called once at the start, so create things here
+		int big_items_to_pack = 10;
+		int medium_items_to_pack = 20;
+		int small_items_to_pack = 15;
+		srand(time(NULL));
+		
+		// Measure the time to pack
+		Timer T = Timer();
+		for (int c = 0; c < big_items_to_pack; c++){
+			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height)) + 1, (rand() % (bin_width))+ 1)) << "\n";
+		}
+		for (int c = 0; c < medium_items_to_pack; c++){
+			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height / 2)) + 1, (rand() % (bin_width / 2))+ 1)) << "\n";
+		}
+		for (int c = 0; c < small_items_to_pack; c++){
+			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height / 4)) + 1, (rand() % (bin_width / 4))+ 1)) << "\n";
+		}
+
+		std::cout << "Time Taken: " << T.now() << "s\n";
+
+		return true;
+	}
+
+	bool OnUserUpdate(float fElapsedTime) override
+	{
+		Draw(fElapsedTime);
+		OnGui(fElapsedTime);
+		OnHandleZoom(fElapsedTime);
+		OnHandleControls(fElapsedTime);
 		return true;
 	}
 
