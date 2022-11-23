@@ -141,18 +141,22 @@ public:
 	{
         if(toggleHelp)
         {
-            DrawString(0, 10, "Controles e Ajuda - H:" ,                      olc::Pixel(0, 255, 47), 1);
-            DrawString(0, 20, "====== Usabilidade ======",          olc::WHITE, 1);
-            DrawString(0, 30, "W | A | S | D - Navegacao",                          olc::WHITE, 1);
-            DrawString(0, 40, "Q | E - Zoom",                                   olc::WHITE, 1);
-            DrawString(0, 50, "C - Reseta camera",                 olc::WHITE, 1);
-            DrawString(0, 60, "Botao Esquerdo - Navegacao",                   olc::WHITE, 1);
-            DrawString(0, 70, "Botao Direito - Cria item",          olc::WHITE, 1);
-            DrawString(0, 90, "====== Atualiza Fila ======",          olc::WHITE, 1);
-            DrawString(0, 100,  "J | K | L - 2D: G, M, P", olc::WHITE, 1);
-            DrawString(0, 110, "B | N | M - 1D: G, M, P", olc::WHITE, 1);
-            DrawString(0, 130, "====== Insere Fila ======",          olc::WHITE, 1);
-            DrawString(0, 140, "U | I | O - Best, First, Next Fit",     olc::WHITE, 1);
+			olc::Pixel titleColor = olc::GREEN;
+			olc::Pixel color = olc::WHITE;
+            DrawString(0, 10, "Controles e Ajuda - H:" ,            olc::Pixel(0, 255, 47), 1);
+            DrawString(0, 20, "====== Usabilidade ======",          titleColor, 1);
+            DrawString(0, 30, "W | A | S | D - Navegacao",          color, 1);
+            DrawString(0, 40, "Q | E - Zoom",                       color, 1);
+            DrawString(0, 50, "C - Reseta camera",                  color, 1);
+            DrawString(0, 60, "Botao Esquerdo - Navegacao",         color, 1);
+            DrawString(0, 70, "Botao Direito - Cria item",          color, 1);
+            DrawString(0, 90, "====== Atualiza Fila ======",        titleColor, 1);
+            DrawString(0, 100,  "J | K | L - 2D: G, M, P",          color, 1);
+            DrawString(0, 110, "B | N | M - 1D: G, M, P",           color, 1);
+            DrawString(0, 130, "====== Insere Fila ======",         titleColor, 1);
+            DrawString(0, 140, "U - Best Fit", color, 1);
+            DrawString(0, 150, "I - First Fit", color, 1);
+            DrawString(0, 160, "O - Next Fit", color, 1);
         }
 
         DrawString(ScreenWidth() - 635, ScreenHeight() - 20, "Jelson Rodrigues - Juathan Duarte - Lucas Morais", olc::Pixel(255,255,255,123), 1);
