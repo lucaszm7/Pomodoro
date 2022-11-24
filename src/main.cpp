@@ -20,6 +20,7 @@ public:
 	uint32_t bin_height = 256;
 	std::vector<Bin> bins;
 	std::vector<Item> items_buffer;
+	uint32_t max_Y_value_in_buffer = 0;
 
 	bool toggleHelp = true;
 
@@ -71,26 +72,22 @@ public:
 		if(!items_buffer.empty())
 		{
 			bufferTLbefore = items_buffer.front().getLeftUpperCorner();
-			int maxY = 0;
+			bufferBRbefore.x = items_buffer.back().getRightBottomCorner().x;
+			bufferBRbefore.y = items_buffer.back().getLeftUpperCorner().y + max_Y_value_in_buffer;
+			WorldToScreen(bufferTLbefore, bufferTLafter);
+			WorldToScreen(bufferBRbefore, bufferBRafter);
+			FillRect(bufferTLafter, bufferBRafter - bufferTLafter, olc::BLACK);
+			DrawRect(bufferTLafter - olc::vi2d(1,1), (bufferBRafter - bufferTLafter) + olc::vi2d(1,1), olc::WHITE);
+
 			for(const auto& item : items_buffer)
 			{
-				if(item.getHeight() > maxY) maxY = item.getHeight();
+				olc::vi2d itemTLafter;
+				olc::vi2d itemBRafter;
+				WorldToScreen(item.getLeftUpperCorner(), itemTLafter);
+				WorldToScreen(item.getRightBottomCorner(), itemBRafter);
+				FillRect(itemTLafter, itemBRafter - itemTLafter, item.getColor());
 			}
-			bufferBRbefore.x = items_buffer.back().getRightBottomCorner().x;
-			bufferBRbefore.y = items_buffer.back().getLeftUpperCorner().y + maxY;
 		}
-		WorldToScreen(bufferTLbefore, bufferTLafter);
-		WorldToScreen(bufferBRbefore, bufferBRafter);
-		FillRect(bufferTLafter, bufferBRafter - bufferTLafter, olc::BLACK);
-		DrawRect(bufferTLafter - olc::vi2d(1,1), (bufferBRafter - bufferTLafter) + olc::vi2d(1,1), olc::WHITE);
-		for(int c = 0; c < items_buffer.size(); c++)
-		{
-			olc::vi2d itemTLafter;
-			olc::vi2d itemBRafter;
-			WorldToScreen(items_buffer[c].getLeftUpperCorner(), itemTLafter);
-			WorldToScreen(items_buffer[c].getRightBottomCorner(), itemBRafter);
-			FillRect(itemTLafter, itemBRafter - itemTLafter, items_buffer[c].getColor());
-		} 
 			
 		if(vRectDraw)
 		{
@@ -192,13 +189,13 @@ public:
 
 		// Add items to the buffer
 		if (GetKey(olc::Key::J).bPressed) {
-			addItemToBuffer(Item((rand() % (bin_height / 2)) + 1, (rand() % (bin_width / 2))+ 1));
+			addItemToBuffer(Item((rand() % (bin_height / 1)) + 1, (rand() % (bin_width / 1))+ 1));
 		}
 		if (GetKey(olc::Key::K).bPressed) {
-			addItemToBuffer(Item((rand() % (bin_height / 4)) + 1, (rand() % (bin_width / 4))+ 1));
+			addItemToBuffer(Item((rand() % (bin_height / 2)) + 1, (rand() % (bin_width / 2))+ 1));
 		}
 		if (GetKey(olc::Key::L).bPressed) {
-			addItemToBuffer(Item((rand() % (bin_height / 8)) + 1, (rand() % (bin_width / 8))+ 1));
+			addItemToBuffer(Item((rand() % (bin_height / 4)) + 1, (rand() % (bin_width / 4))+ 1));
 		}
 
 		// Add 1d items to the buffer
@@ -292,6 +289,7 @@ public:
 			item.moveItem(olc::vi2d(items_buffer[items_buffer.size() - 1].getRightBottomCorner().x + 10, -bin_height));	
 		}
 		items_buffer.push_back(item);
+		if (item.getHeight() > max_Y_value_in_buffer) max_Y_value_in_buffer = item.getHeight();
 		return true;
 	}
 

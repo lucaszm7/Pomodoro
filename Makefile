@@ -29,4 +29,5 @@ install:
 	sudo apt-get install build-essential libglu1-mesa-dev libpng-dev libmpich12
 
 clean:
+	rm ./bin
 	rm -rf *.o
