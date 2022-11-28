@@ -4,6 +4,7 @@
 #include "include/item.hpp"
 #include "include/line.hpp"
 #include "include/bin.hpp"
+#include "include/movingitem.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -20,6 +21,7 @@ public:
 	uint32_t bin_height = 256;
 	std::vector<Bin> bins;
 	std::vector<Item> items_buffer;
+	std::vector<MovingItem> items_buffer_moving_items;
 	uint32_t max_Y_value_in_buffer = 0;
 
 	bool toggleHelp = true;
@@ -86,6 +88,27 @@ public:
 				WorldToScreen(item.getLeftUpperCorner(), itemTLafter);
 				WorldToScreen(item.getRightBottomCorner(), itemBRafter);
 				FillRect(itemTLafter, itemBRafter - itemTLafter, item.getColor());
+			}
+		}
+
+		if (!items_buffer_moving_items.empty()){
+			// All items are in final position?
+			bool final_position_items = true;
+			
+			for (auto& moving_item : items_buffer_moving_items){
+				if (moving_item.isInFinalPosition() == false){
+					final_position_items = false;
+					moving_item.move(fElapsedTime * 1000.0); 
+
+					olc::vi2d itemTLafter;
+					olc::vi2d itemBRafter;
+					WorldToScreen(moving_item.getItem().getLeftUpperCorner(), itemTLafter);
+					WorldToScreen(moving_item.getItem().getRightBottomCorner(), itemBRafter);
+					FillRect(itemTLafter, itemBRafter - itemTLafter, moving_item.getItem().getColor());
+				}
+			}
+			if (final_position_items){
+				items_buffer_moving_items.clear();
 			}
 		}
 			
@@ -211,26 +234,56 @@ public:
 
 		// Add all items in the buffer to the bins with best fit strategy
 		if (GetKey(olc::Key::U).bPressed) {
-			for (const auto& item: items_buffer){
-				std::cout << "Inserted: " << bestFit(item) << "\n";
+			for (auto& item: items_buffer){
+				olc::vi2d position_before_insert = item.getLeftUpperCorner();
+				olc::vi2d inserted_position;
+				if (bestFit(item, inserted_position)){
+					std::cout << "Inserted \n";
+					item.moveItem(position_before_insert); //reset the item postition
+					items_buffer_moving_items.push_back(MovingItem(item, inserted_position, rand() % 1000 + 500));
+				}
+				else {
+					std::cout << "Fail to insert item \n";
+				}
 			}
 			items_buffer.clear();
+			max_Y_value_in_buffer = 0;
 		}
 
 		// Add all items in the buffer to the bins with first fit strategy
 		if (GetKey(olc::Key::I).bPressed) {
-			for (const auto& item: items_buffer){
-				std::cout << "Inserted: " << firstFit(item) << "\n";
+			for (auto& item: items_buffer){
+				olc::vi2d position_before_insert = item.getLeftUpperCorner();
+				olc::vi2d inserted_position;
+				if (firstFit(item, inserted_position)){
+					std::cout << "Inserted \n";
+					item.moveItem(position_before_insert); //reset the item postition
+					items_buffer_moving_items.push_back(MovingItem(item, inserted_position, rand() % 1000 + 500));
+				}
+				else {
+					std::cout << "Fail to insert item \n";
+				}
 			}
 			items_buffer.clear();
+			max_Y_value_in_buffer = 0;
 		}
 
 		// Add all items in the buffer to the bins with next fit strategy
 		if (GetKey(olc::Key::O).bPressed) {
-			for (const auto& item: items_buffer){
-				std::cout << "Inserted: " << nextFit(item) << "\n";
+			for (auto& item: items_buffer){
+				olc::vi2d position_before_insert = item.getLeftUpperCorner();
+				olc::vi2d inserted_position;
+				if (nextFit(item, inserted_position)){
+					std::cout << "Inserted \n";
+					item.moveItem(position_before_insert); //reset the item postition
+					items_buffer_moving_items.push_back(MovingItem(item, inserted_position, rand() % 1000 + 500));
+				}
+				else {
+					std::cout << "Fail to insert item \n";
+				}
 			}
 			items_buffer.clear();
+			max_Y_value_in_buffer = 0;
 		}
 
 		// Reset screen position
@@ -257,14 +310,15 @@ public:
 		
 		// Measure the time to pack
 		Timer T = Timer();
+		olc::vi2d positionInserted;
 		for (int c = 0; c < big_items_to_pack; c++){
-			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height)) + 1, (rand() % (bin_width))+ 1)) << "\n";
+			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height)) + 1, (rand() % (bin_width))+ 1), positionInserted) << "\n";
 		}
 		for (int c = 0; c < medium_items_to_pack; c++){
-			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height / 2)) + 1, (rand() % (bin_width / 2))+ 1)) << "\n";
+			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height / 2)) + 1, (rand() % (bin_width / 2))+ 1), positionInserted) << "\n";
 		}
 		for (int c = 0; c < small_items_to_pack; c++){
-			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height / 4)) + 1, (rand() % (bin_width / 4))+ 1)) << "\n";
+			std::cout << "Inserted: " << nextFit(Item((rand() % (bin_height / 4)) + 1, (rand() % (bin_width / 4))+ 1), positionInserted) << "\n";
 		}
 
 		std::cout << "Time Taken: " << T.now() << "s\n";
@@ -324,43 +378,51 @@ protected:
 	}
 
 	// First fit iterates trhought all bins and tries to add in all of them
-	bool firstFit(Item item){
+	bool firstFit(Item item, olc::vi2d &insertedPosition){
 		if (item.getHeight() > bin_height || item.getWidth() > bin_width) return false;
 		for (int c = 0; c < bins.size(); c++){
 			if (bins[c].insert(item)) {
+				insertedPosition = bins[c].getItemsInBin()[bins[c].getItemsInBin().size() - 1].getLeftUpperCorner();
 				return true;
 			}
 		}
 
 		createNewBin();
-		if (bins[(bins.size() - 1)].insert(item) == false) return false;
-		return true;
+		if (bins[(bins.size() - 1)].insert(item)){
+			insertedPosition = bins[(bins.size() - 1)].getItemsInBin()[bins[(bins.size() - 1)].getItemsInBin().size() - 1].getLeftUpperCorner();
+			return true;
+		} 
+		return false;
 	}
 
 	// Next fit only considers the last bin
-	bool nextFit(Item item){
+	bool nextFit(Item item, olc::vi2d &insertedPosition){
 		if (item.getHeight() > bin_height || item.getWidth() > bin_width) return false;
 		if (bins.size() != 0) {
 			if (bins[bins.size() - 1].insert(item)) {
+				insertedPosition = bins[bins.size() - 1].getItemsInBin()[bins[bins.size() - 1].getItemsInBin().size() - 1].getLeftUpperCorner();
 				return true;
 			}
 		}
 
 		// Creates a new bin and add to the bins vector
 		createNewBin();
-		if (bins[(bins.size() - 1)].insert(item) == false) return false;
-		return true;
+		if (bins[(bins.size() - 1)].insert(item)){
+			insertedPosition = bins[bins.size() - 1].getItemsInBin()[bins[bins.size() - 1].getItemsInBin().size() - 1].getLeftUpperCorner();
+			return true;
+		}
+		return false;
 	}
 
 	// Best fit add to the bin that will have the least amount of space unused after the insertion
-	bool bestFit(Item item){
+	bool bestFit(Item item, olc::vi2d &insertedPosition){
 		if (item.getHeight() > bin_height || item.getWidth() > bin_width) return false;
 		
 		// Order the vector of bins by decreasing order of used area
 		// Falta ordenar os bins por ordem decrescente de area usada 
 		//  std::sort(bins.begin(), bins.end(), compareBinsByAreaUsed);
 
-		return firstFit(item);
+		return firstFit(item, insertedPosition);
 	}
 
 	bool createNewBin() {
