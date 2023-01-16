@@ -123,7 +123,9 @@ public:
 	uint32_t radius = std::min(ScreenHeight(), ScreenWidth()) / 2;
 	olc::Pixel color = olc::Pixel(255, 165, 0);
 
-	const Time focusTime = Time(7, 0, 0);
+	std::vector<Time> marks;
+
+	const Time focusTime = Time(6, 0, 0);
 	Time focusStart;
 	const Time restTime  = Time(4, 0, 0);
 	Time restStart;
@@ -213,6 +215,11 @@ public:
 		OnDraw(fElapsedTime);
 		KeyboardInput();
 
+		for(int i = 0; i < marks.size() && i < 5; ++i)
+		{
+			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 80 + (20 * i)), std::to_string(i + 1) + ". " + marks[i].ToString() + " - " + focusTime.ToString(), olc::CYAN, 2);
+		}
+
 		if(status == STATUS::RUNNING)
 		{
 			Time progressTimer = progress == PROGRESS::FOCUS ? focusTime : restTime;
@@ -227,6 +234,7 @@ public:
 			{
 				if(progress == PROGRESS::FOCUS)
 				{
+					marks.push_back(focusStart);
 					soundEngine.PlayWaveform(&soundStartingRest);
 					restStart = timer;
 					progress = PROGRESS::REST;
@@ -254,7 +262,7 @@ int main()
 {
 	{
 		Clock app;
-		if (app.Construct(500, 400, 1, 1)){
+		if (app.Construct(700, 400, 1, 1)){
 			app.Start();
 		}
 	}
