@@ -113,9 +113,9 @@ public:
 	uint32_t radius = ScreenHeight() / 3;
 	olc::Pixel color = olc::Pixel(255, 165, 0);
 
-	const Time focusTime = Time(0, 25, 0);
+	const Time focusTime = Time(7, 0, 0);
 	Time focusStart;
-	const Time restTime  = Time(0, 5, 0);
+	const Time restTime  = Time(4, 0, 0);
 	Time restStart;
 
 	Time timeLeft;
@@ -210,24 +210,28 @@ public:
 			Time progressTimer = progress == PROGRESS::FOCUS ? focusTime : restTime;
 			Time progressStart = progress == PROGRESS::FOCUS ? focusStart : restStart;
 
-			Time dif = timer - focusStart;
+			Time dif = timer - progressStart;
 			timeLeft = progressTimer - dif;
-
+			std::cout << timeLeft << "\n";
 			DrawString(CenterOfScreen() + olc::vi2d(-radius, radius + 20), progressStart.ToString(), olc::YELLOW);
 			DrawString(CenterOfScreen() + olc::vi2d(-radius, radius + 40), timeLeft.ToString(), olc::GREEN);
 
-			if(timeLeft.minutes < 0)
+			if(timeLeft.seconds < 0)
 			{
 				if(progress == PROGRESS::FOCUS)
 				{
 					soundEngine.PlayWaveform(&soundStartingRest);
+					restStart = timer;
 					progress = PROGRESS::REST;
+					std::cout << "REST!!!\n";
 				}
 				
-				if(progress == PROGRESS::REST)
+				else if(progress == PROGRESS::REST)
 				{
 					soundEngine.PlayWaveform(&soundStartingFocus);
+					focusStart = timer;
 					progress = PROGRESS::FOCUS;
+					std::cout << "FOCUS!!!\n";
 				}
 			}
 		}
