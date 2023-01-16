@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -fopenmp
-LFLAGS = -lX11 -lGL -lpthread -lpng -lstdc++fs -std=c++17 -O3 -mavx2 
+LFLAGS = -lX11 -lGL -lpthread -lpng -lstdc++fs -lpulse -lpulse-simple -std=c++17 -O3 -mavx2 
 WFLAGS = -luser32 -lgdi32 -lopengl32 -lgdiplus -lShlwapi -ldwmapi -lstdc++fs -static -std=c++17 -O3 -mavx2 
 WINPATH = src
 FILE = clock
@@ -26,7 +26,7 @@ run_windows: bin/$(FILE).exe
 	./bin/$(FILE).exe
 
 install:
-	sudo apt-get install build-essential libglu1-mesa-dev libpng-dev libmpich12
+	sudo apt-get install build-essential libglu1-mesa-dev libpng-dev libmpich12 libpulse-dev
 
 clean:
 	rm ./bin
