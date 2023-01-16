@@ -5,6 +5,7 @@
 #include "include/olcSoundWaveEngine.h"
 
 #include <iostream>
+#include <algorithm>
 
 #define M_PI 3.141592653589793238462643
 
@@ -81,6 +82,15 @@ struct Time
 		std::string hour   =   (nHours < 10)   ? ("0" + std::to_string(hours)   + ":") : std::to_string(hours)   + ":";
 		return hour + minute + second;
 	}
+
+	int GetHoursGMT()
+	{
+		int nHours = hours;
+		nHours += GMT_Time;
+		if(nHours < 0) nHours += 24;
+		return nHours;
+	}
+
 };
 
 inline std::ostream& operator << (std::ostream& out, const Time& tm)
@@ -110,7 +120,7 @@ class Clock : public olc::PixelGameEngine
 public: Clock() { sAppName = "Clock"; }
 
 public:
-	uint32_t radius = ScreenHeight() / 3;
+	uint32_t radius = std::min(ScreenHeight(), ScreenWidth()) / 2;
 	olc::Pixel color = olc::Pixel(255, 165, 0);
 
 	const Time focusTime = Time(7, 0, 0);
@@ -157,23 +167,23 @@ public:
 
 		Clear(olc::Pixel(128, 64, 128, (timer.seconds % 128) + 127));
 
-		FillCircle(CenterOfScreen(), radius, olc::Pixel(155, 155, 155, 255));
-		DrawCircle(CenterOfScreen(), radius + 0, olc::CYAN);
+		FillCircle(CenterOfScreen() - olc::vi2d(ScreenWidth()/4, 0), radius, olc::Pixel(155, 155, 155, 255));
+		DrawCircle(CenterOfScreen() - olc::vi2d(ScreenWidth()/4, 0), radius + 0, olc::CYAN);
 
-		DrawLine(CenterOfScreen(), CenterOfScreen() + olc::vi2d(radius * cos(((timer.seconds * 6.0) - 90) * (M_PI / 180.0)), 
+		DrawLine(CenterOfScreen() - olc::vi2d(ScreenWidth()/4, 0), CenterOfScreen() - olc::vi2d(ScreenWidth() / 4, 0) + olc::vi2d(radius * cos(((timer.seconds * 6.0) - 90) * (M_PI / 180.0)), 
 																radius * sin(((timer.seconds * 6.0) - 90) * (M_PI / 180.0))), 
 																olc::MAGENTA);
 		
-		DrawLine(CenterOfScreen(), CenterOfScreen() + olc::vi2d(radius/2 * cos(((timer.minutes * 6.0) - 90) * (M_PI / 180.0)), 
+		DrawLine(CenterOfScreen() - olc::vi2d(ScreenWidth()/4, 0), CenterOfScreen() - olc::vi2d(ScreenWidth() / 4, 0) + olc::vi2d(radius/2 * cos(((timer.minutes * 6.0) - 90) * (M_PI / 180.0)), 
 																radius/2 * sin(((timer.minutes * 6.0) - 90) * (M_PI / 180.0))), 
 																olc::RED);
 		
-		DrawLine(CenterOfScreen(), CenterOfScreen() + olc::vi2d(radius/4 * cos(((timer.hours * 30.0) - 90) * (M_PI / 180.0)), 
-																radius/4 * sin(((timer.hours * 30.0) - 90) * (M_PI / 180.0))), 
+		DrawLine(CenterOfScreen() - olc::vi2d(ScreenWidth()/4, 0), CenterOfScreen() - olc::vi2d(ScreenWidth() / 4, 0) + olc::vi2d(radius/4 * cos(((timer.hours * 30.0) - 90) * (M_PI / 180.0)), 
+																radius/4 * sin((((timer.GetHoursGMT()) * 30.0) - 90) * (M_PI / 180.0))), 
 																olc::BLUE);
 		
 
-		DrawString(CenterOfScreen() + olc::vi2d(- radius, radius + 10), timer.ToString());
+		DrawString(CenterOfScreen() + olc::vi2d(0, - radius), timer.ToString(), olc::WHITE, 2);
 
 		return true;
 	}
@@ -189,8 +199,6 @@ public:
 			}
 			else if(status == STATUS::PAUSED)
 			{
-				Time progressTimer = (( progress == PROGRESS::FOCUS ) ? focusTime : restTime);
-				focusStart = timer - progressTimer;
 				status = STATUS::RUNNING;
 			}
 			else if(status == STATUS::RUNNING)
@@ -212,9 +220,8 @@ public:
 
 			Time dif = timer - progressStart;
 			timeLeft = progressTimer - dif;
-			std::cout << timeLeft << "\n";
-			DrawString(CenterOfScreen() + olc::vi2d(-radius, radius + 20), progressStart.ToString(), olc::YELLOW);
-			DrawString(CenterOfScreen() + olc::vi2d(-radius, radius + 40), timeLeft.ToString(), olc::GREEN);
+			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 20), progressStart.ToString(), olc::YELLOW, 2);
+			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 40), timeLeft.ToString(),      olc::GREEN , 2);
 
 			if(timeLeft.seconds < 0)
 			{
@@ -223,7 +230,6 @@ public:
 					soundEngine.PlayWaveform(&soundStartingRest);
 					restStart = timer;
 					progress = PROGRESS::REST;
-					std::cout << "REST!!!\n";
 				}
 				
 				else if(progress == PROGRESS::REST)
@@ -231,9 +237,13 @@ public:
 					soundEngine.PlayWaveform(&soundStartingFocus);
 					focusStart = timer;
 					progress = PROGRESS::FOCUS;
-					std::cout << "FOCUS!!!\n";
 				}
 			}
+		}
+
+		else
+		{
+			DrawString(olc::vi2d(ScreenWidth()/2 - radius + 40, 20), "P A U S E D", olc::Pixel(255, 255, 255, 64) , 2);
 		}
 
 		return true;
@@ -244,7 +254,7 @@ int main()
 {
 	{
 		Clock app;
-		if (app.Construct(640, 360, 1, 1)){
+		if (app.Construct(500, 400, 1, 1)){
 			app.Start();
 		}
 	}
