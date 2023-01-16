@@ -1,7 +1,41 @@
 #define OLC_PGE_APPLICATION 
 #include "include/olcPixelGameEngine.h"
 #include <iostream>
+#include <complex>
+
 #define M_PI 3.141592653589793238462643
+
+struct Time
+{
+	int seconds = 0;
+	int minutes = 0;
+	int hours   = 0;
+	friend std::ostream& operator << (std::ostream& os, const Time& tm);
+	int GMT = -3;
+
+	Time(int s)
+	{
+		seconds = s % 60;
+		minutes = (s / 60) % 60;
+		hours = ((s / 3600) % 24) + GMT;
+	}
+};
+
+inline std::ostream& operator << (std::ostream& out, const Time& tm)
+{
+	std::string second =  (tm.seconds < 10) ? ("0" + std::to_string(tm.seconds) + ":") : std::to_string(tm.seconds);
+	std::string minutes = (tm.minutes < 10) ? ("0" + std::to_string(tm.minutes) + ":") : std::to_string(tm.minutes) + ":";
+	std::string hours =   (tm.hours < 10)   ? ("0" + std::to_string(tm.hours)   + ":") : std::to_string(tm.hours)   + ":";
+	out << hours << minutes << second;
+	return out;
+}
+
+struct Date
+{
+	int day;
+	int month;
+	int year;
+};
 
 class Clock : public olc::PixelGameEngine
 {
@@ -12,88 +46,54 @@ public:
 	}
 
 public:
-	int counter;
-	uint32_t raio;
+	uint32_t radius;
 	olc::Pixel color = olc::Pixel(255, 165, 0);
-	bool draw(float fElapsedTime)
-	{
-		// called once per frame
-		Clear(olc::Pixel(64, 128, 128, (counter % 128) + 127));
-
-		FillCircle(olc::vi2d(ScreenWidth() / 2, ScreenHeight() / 2), raio, olc::Pixel(155, 155, 155, 255));
-		DrawCircle(olc::vi2d(ScreenWidth() / 2, ScreenHeight() / 2), raio + 0, olc::CYAN);
-		DrawCircle(olc::vi2d(ScreenWidth() / 2, ScreenHeight() / 2), raio + 1, olc::BLUE);
-		DrawCircle(olc::vi2d(ScreenWidth() / 2, ScreenHeight() / 2), raio + 2, olc::BLACK);
-
-		// Seconds
-		uint8_t second = counter % 60;
-		DrawLine(
-			olc::vi2d(
-				ScreenWidth() / 2,
-				ScreenHeight() / 2
-			),
-			olc::vi2d(
-				ScreenWidth() / 2 + (raio * sin((((second) * 6.0) ) * M_PI / 180.0)), 
-				ScreenHeight() / 2 + (raio * -cos((((second) * 6.0) ) * M_PI / 180.0))
-			),
-			color
-		);
-
-		// Minutes
-		uint8_t minute = (counter / 60) % 60;
-		DrawLine(
-			olc::vi2d(
-				ScreenWidth() / 2,
-				ScreenHeight() / 2
-			),
-			olc::vi2d(
-				ScreenWidth() / 2 + ((raio * 3/4) * sin((((minute) * 6.0)) * M_PI / 180.0)), 
-				ScreenHeight() / 2 + ((raio * 3/4) * -cos((((minute) * 6.0)) * M_PI / 180.0))
-			),
-			olc::BACK
-		);
-
-		// Hours
-		#define GMT_OFFSET 3 
-		uint8_t hour = ((counter / (60 * 60) - GMT_OFFSET) % 12);
-		DrawLine(
-			olc::vi2d(
-				ScreenWidth() / 2,
-				ScreenHeight() / 2
-			),
-			olc::vi2d(
-				ScreenWidth() / 2 + ((raio / 2) * sin(((hour * 30)) * M_PI / 180.0)), 
-				ScreenHeight() / 2 + ((raio / 2) * -cos(((hour * 30)) * M_PI / 180.0))
-			),
-			olc::DARK_MAGENTA
-		);
-
-		std::ostringstream stream;
-		stream << std::setw(2) << std::setfill('0') << (int) hour << ":" << std::setw(2) << std::setfill('0') << (int) minute << ":" << std::setw(2) << std::setfill('0') << (int) second;
-		std::string digital_hour = stream.str();
-
-		DrawString(
-			olc::vi2d(
-				ScreenWidth() / 2  - raio,
-				ScreenHeight() / 2 + raio + 10
-			),
-			digital_hour
-		);
-
-		counter = time(0);
-		return true;
-	}
 
 	bool OnUserCreate() override
 	{
 		// Called once at the start, so create things here
-		raio = ScreenHeight() / 5;
+		radius = ScreenHeight() / 5;
 		return true;
 	}
 
+	inline olc::vi2d CenterOfScreen()
+	{
+		return olc::vi2d(ScreenWidth() / 2, ScreenHeight() / 2);
+	}
+
+	bool Draw(float fElapsedTime)
+	{
+		Time timer(time(0));
+
+		Clear(olc::Pixel(64, 128, 128, (timer.seconds % 128) + 127));
+
+		FillCircle(CenterOfScreen(), radius, olc::Pixel(155, 155, 155, 255));
+		DrawCircle(CenterOfScreen(), radius + 0, olc::CYAN);
+
+		DrawLine(CenterOfScreen(), CenterOfScreen() + olc::vi2d(radius * cos(((timer.seconds * 6.0) - 90) * (M_PI / 180.0)), 
+																radius * sin(((timer.seconds * 6.0) - 90) * (M_PI / 180.0))), 
+																olc::MAGENTA);
+		
+		DrawLine(CenterOfScreen(), CenterOfScreen() + olc::vi2d(radius/2 * cos(((timer.minutes * 6.0) - 90) * (M_PI / 180.0)), 
+																radius/2 * sin(((timer.minutes * 6.0) - 90) * (M_PI / 180.0))), 
+																olc::RED);
+		
+		DrawLine(CenterOfScreen(), CenterOfScreen() + olc::vi2d(radius/4 * cos(((timer.hours * 30.0) - 90) * (M_PI / 180.0)), 
+																radius/4 * sin(((timer.hours * 30.0) - 90) * (M_PI / 180.0))), 
+																olc::BLUE);
+		
+
+		std::ostringstream digitalTime;
+		digitalTime << timer;
+
+		DrawString(olc::vi2d(ScreenWidth() / 2  - radius, ScreenHeight() / 2 + radius + 10),digitalTime.str());
+
+		return true;
+	}
+	
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		draw(fElapsedTime);
+		Draw(fElapsedTime);
 		return true;
 	}
 };

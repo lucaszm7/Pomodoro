@@ -10,3 +10,4 @@ bin/*.exe
 *.ilk
 *.obj
 *.pdb
+bin/
