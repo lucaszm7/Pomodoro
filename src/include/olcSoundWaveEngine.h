@@ -253,11 +253,20 @@ namespace olc::sound
 			return m_dDurationInSamples;
 		}
 
-		bool LoadFile(const std::string& sFilename)
+		bool LoadFile(const std::string& sFilename, char* pData = nullptr, size_t nSize = 0)
 		{
-			std::ifstream ifs(sFilename, std::ios::binary);
-			if (!ifs.is_open())
-				return false;
+			std::stringstream ifs;
+			if(pData == nullptr)
+			{
+				// ifs.open(sFilename, std::ios::binary);
+				// if (!ifs.is_open())
+				// 	return false;
+			}
+			else
+			{
+				ifs.write(pData, nSize);
+				std::cout << "Reading buffer..."<< ifs.tellg() <<"\n";
+			}
 
 			struct WaveFormatHeader
 			{
@@ -469,11 +478,11 @@ namespace olc::sound
 				vChannelView[c].SetData(file.data(), file.samples(), file.channels(), c);
 		}
 
-		bool LoadAudioWaveform(std::string sWavFile)
+		bool LoadAudioWaveform(std::string sWavFile, char* pData, size_t nSize)
 		{
 			vChannelView.clear();
 
-			if (file.LoadFile(sWavFile))
+			if (file.LoadFile(sWavFile, pData, nSize))
 			{
 				// Setup views for each channel
 				vChannelView.resize(file.channels());

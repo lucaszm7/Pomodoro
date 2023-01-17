@@ -7,7 +7,53 @@
 #include <iostream>
 #include <algorithm>
 
+#include <Windows.h>
+#include "resource.h"
+
 #define M_PI 3.141592653589793238462643
+
+class Resource {
+public:
+	struct Parameters {
+		std::size_t size_bytes = 0;
+		void* ptr = nullptr;
+	};
+private:
+	HRSRC hResource = nullptr;
+	HGLOBAL hMemory = nullptr;
+
+	Parameters p;
+
+public:
+
+	HMODULE GCM()
+	{ // NB: XP+ solution!
+		HMODULE hModule = NULL;
+		GetModuleHandleEx(
+			GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+			nullptr,
+			&hModule);
+
+		return hModule;
+	}
+
+	Resource(int resource_id, int resource_class) {
+		hResource = FindResource(GCM(), MAKEINTRESOURCE(resource_id), MAKEINTRESOURCE(resource_class));
+		hMemory = LoadResource(GCM(), hResource);
+
+		p.size_bytes = SizeofResource(GCM(), hResource);
+		p.ptr = LockResource(hMemory);
+	}
+
+	auto& GetResource() const {
+		return p;
+	}
+};
+
+auto& GetFile(int NAME, int CLASS) {
+	Resource very_important(NAME, CLASS);
+	return very_important.GetResource();
+}
 
 struct Time
 {
@@ -71,7 +117,7 @@ struct Time
 		hours = ((s / 3600) % 24);
 	}
 
-	std::string ToString(bool GMT = true) const
+	std::string ToString(bool GMT) const
 	{
 		std::string second  =  (seconds < 10) ? ("0" + std::to_string(seconds)) : std::to_string(seconds);
 		std::string minute =   (minutes < 10) ? ("0" + std::to_string(minutes) + ":") : std::to_string(minutes) + ":";
@@ -79,7 +125,7 @@ struct Time
 		int nHours = hours;
 		if(GMT) nHours += GMT_Time;
 		if(nHours < 0) nHours += 24;
-		std::string hour   =   (nHours < 10)   ? ("0" + std::to_string(hours)   + ":") : std::to_string(hours)   + ":";
+		std::string hour   =   (nHours < 10)   ? ("0" + std::to_string(nHours)   + ":") : std::to_string(nHours)   + ":";
 		return hour + minute + second;
 	}
 
@@ -115,6 +161,13 @@ enum class PROGRESS
 	REST
 };
 
+std::string ToString(PROGRESS pg)
+{
+	if      (pg == PROGRESS::FOCUS) return "FOCUS";
+	else if (pg == PROGRESS::REST)  return "REST";
+	else                            return "";
+}
+
 class Clock : public olc::PixelGameEngine
 {
 public: Clock() { sAppName = "Clock"; }
@@ -125,9 +178,12 @@ public:
 
 	std::vector<Time> marks;
 
-	const Time focusTime = Time(6, 0, 0);
+	Time totalTimeStart;
+	Time totalTime;
+
+	const Time focusTime = Time(0, 25, 0);
 	Time focusStart;
-	const Time restTime  = Time(4, 0, 0);
+	const Time restTime  = Time(0, 5, 0);
 	Time restStart;
 
 	Time timeLeft;
@@ -144,16 +200,17 @@ public:
 	bool OnUserCreate() override
 	{
 		soundEngine.InitialiseAudio();
-		if(!soundStartingFocus.LoadAudioWaveform("./res/notification.wav"))
-		{
-			if(!soundStartingFocus.LoadAudioWaveform("../res/notification.wav"))
-				std::cout << "Sample not loaded...\n";
-		}
-		if(!soundStartingRest.LoadAudioWaveform("./res/trumpets.wav"))
-		{
-			if(!soundStartingRest.LoadAudioWaveform("../res/trumpets.wav"))
-				std::cout << "Sample not loaded...\n";
-		}
+		auto t = GetFile(IDR_AUDIO1, AUDIO);
+		if(t.size_bytes > 0)
+			if(!soundStartingFocus.LoadAudioWaveform("", (char*)t.ptr, t.size_bytes))
+				std::cout << "Error with sound\n";
+
+		t = GetFile(IDR_AUDIO2, AUDIO);
+		if(t.size_bytes > 0)
+			if(!soundStartingRest.LoadAudioWaveform("", (char*)t.ptr, t.size_bytes))
+				std::cout << "Error with sound\n";
+
+		std::cout << t.size_bytes << '\n';
 
 		return true;
 	}
@@ -180,12 +237,12 @@ public:
 																radius/2 * sin(((timer.minutes * 6.0) - 90) * (M_PI / 180.0))), 
 																olc::RED);
 		
-		DrawLine(CenterOfScreen() - olc::vi2d(ScreenWidth()/4, 0), CenterOfScreen() - olc::vi2d(ScreenWidth() / 4, 0) + olc::vi2d(radius/4 * cos(((timer.hours * 30.0) - 90) * (M_PI / 180.0)), 
-																radius/4 * sin((((timer.GetHoursGMT()) * 30.0) - 90) * (M_PI / 180.0))), 
+		DrawLine(CenterOfScreen() - olc::vi2d(ScreenWidth()/4, 0), CenterOfScreen() - olc::vi2d(ScreenWidth() / 4, 0) + olc::vi2d(radius/4 * cos(((timer.GetHoursGMT() * 30.0) - 90) * (M_PI / 180.0)), 
+																																  radius/4 * sin(((timer.GetHoursGMT() * 30.0) - 90) * (M_PI / 180.0))), 
 																olc::BLUE);
 		
 
-		DrawString(CenterOfScreen() + olc::vi2d(0, - radius), timer.ToString(), olc::WHITE, 2);
+		DrawString(CenterOfScreen() - olc::vi2d(+ScreenWidth()/4 + radius/2, -(radius + 20)), timer.ToString(true), olc::WHITE, 2);
 
 		return true;
 	}
@@ -197,10 +254,14 @@ public:
 			if(status == STATUS::RESET)
 			{
 				focusStart = timer;
+				restStart = timer;
+				totalTimeStart = timer;
 				status = STATUS::RUNNING;
 			}
 			else if(status == STATUS::PAUSED)
 			{
+				focusStart = timer;
+				restStart = timer;
 				status = STATUS::RUNNING;
 			}
 			else if(status == STATUS::RUNNING)
@@ -217,7 +278,7 @@ public:
 
 		for(int i = 0; i < marks.size() && i < 5; ++i)
 		{
-			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 80 + (20 * i)), std::to_string(i + 1) + ". " + marks[i].ToString() + " - " + focusTime.ToString(), olc::CYAN, 2);
+			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 100 + (20 * i)), std::to_string(i + 1) + ". " + marks[i].ToString(true) + " - " + focusTime.ToString(false), olc::CYAN, 2);
 		}
 
 		if(status == STATUS::RUNNING)
@@ -225,10 +286,12 @@ public:
 			Time progressTimer = progress == PROGRESS::FOCUS ? focusTime : restTime;
 			Time progressStart = progress == PROGRESS::FOCUS ? focusStart : restStart;
 
+			DrawString(CenterOfScreen() - olc::vi2d(ScreenWidth()/4 + radius - 40, radius + 40), ToString(progress), olc::WHITE, 4);
+
 			Time dif = timer - progressStart;
 			timeLeft = progressTimer - dif;
-			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 20), progressStart.ToString(), olc::YELLOW, 2);
-			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 40), timeLeft.ToString(),      olc::GREEN , 2);
+			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 20), timeLeft.ToString(false) + " - " + progressStart.ToString(true), olc::CYAN , 2);
+			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 60), (timer - totalTimeStart).ToString(false), olc::GREEN, 2);
 
 			if(timeLeft.seconds < 0)
 			{
@@ -238,6 +301,7 @@ public:
 					soundEngine.PlayWaveform(&soundStartingRest);
 					restStart = timer;
 					progress = PROGRESS::REST;
+					status = STATUS::PAUSED;
 				}
 				
 				else if(progress == PROGRESS::REST)
@@ -245,13 +309,15 @@ public:
 					soundEngine.PlayWaveform(&soundStartingFocus);
 					focusStart = timer;
 					progress = PROGRESS::FOCUS;
+					status = STATUS::PAUSED;
 				}
 			}
 		}
 
 		else
 		{
-			DrawString(olc::vi2d(ScreenWidth()/2 - radius + 40, 20), "P A U S E D", olc::Pixel(255, 255, 255, 64) , 2);
+			DrawString( CenterOfScreen() - olc::vi2d(ScreenWidth()/4, 40), "P A U S E D",   olc::Pixel(255, 255, 255, 64) , 4);			
+			DrawString( CenterOfScreen() - olc::vi2d(ScreenWidth()/4 + 20, -40),"PRESS 'SPACE'", olc::Pixel(255, 255, 255, 64) , 4);			
 		}
 
 		return true;

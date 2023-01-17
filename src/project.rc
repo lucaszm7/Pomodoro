@@ -1,0 +1,4 @@
+#include "resource.h"
+
+IDR_AUDIO1 AUDIO "notification.wav"
+IDR_AUDIO2 AUDIO "trumpets.wav"
