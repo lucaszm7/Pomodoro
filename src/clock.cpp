@@ -1,8 +1,8 @@
-#define OLC_PGE_APPLICATION 
-#include "include/olcPixelGameEngine.h"
-
 #define OLC_SOUNDWAVE
 #include "include/olcSoundWaveEngine.h"
+
+#define OLC_PGE_APPLICATION 
+#include "include/olcPixelGameEngine.h"
 
 #include <iostream>
 #include <algorithm>
@@ -156,7 +156,7 @@ struct Time
 
 inline std::ostream& operator << (std::ostream& out, const Time& tm)
 {
-	std::string second  =  (tm.seconds < 10) ? ("0" + std::to_string(tm.seconds)) : std::to_string(tm.seconds);
+	std::string second  =  (tm.seconds < 10) ? ("0" + std::to_string(tm.seconds))       : std::to_string(tm.seconds);
 	std::string minutes =  (tm.minutes < 10) ? ("0" + std::to_string(tm.minutes) + ":") : std::to_string(tm.minutes) + ":";
 	std::string hours   =  (tm.hours < 10)   ? ("0" + std::to_string(tm.hours)   + ":") : std::to_string(tm.hours)   + ":";
 	out << hours << minutes << second;
