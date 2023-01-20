@@ -30,7 +30,7 @@ private:
 public:
 
 	HMODULE GCM()
-	{ // NB: XP+ solution!
+	{
 		HMODULE hModule = NULL;
 		GetModuleHandleEx(
 			GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
@@ -239,8 +239,6 @@ public:
 			if(!soundStartingRest.LoadAudioWaveform("", (char*)t.ptr, t.size_bytes))
 				std::cout << "Error with sound\n";
 
-		std::cout << t.size_bytes << '\n';
-
 		return true;
 	}
 
@@ -346,7 +344,7 @@ public:
 
 		else
 		{
-			DrawString( CenterOfScreen() - olc::vi2d(ScreenWidth()/4, 40), "P A U S E D",   olc::Pixel(255, 255, 255, 64) , 4);			
+			DrawString( CenterOfScreen() - olc::vi2d(ScreenWidth()/4, 40),      "P A U S E D",   olc::Pixel(255, 255, 255, 64) , 4);			
 			DrawString( CenterOfScreen() - olc::vi2d(ScreenWidth()/4 + 20, -40),"PRESS 'SPACE'", olc::Pixel(255, 255, 255, 64) , 4);			
 		}
 
@@ -356,7 +354,7 @@ public:
 				type = TYPE::WORK;
 			if(GetKey(olc::K2).bReleased)
 				type = TYPE::STUDY;
-			olc::Pixel selectedColor    = olc::DARK_GREEN;
+			olc::Pixel selectedColor    = olc::Pixel(50, 200, 50);
 			olc::Pixel notSelectedColor = olc::Pixel(255, 255, 255, 64);
 			olc::Pixel workColor  = (type == TYPE::WORK) ? selectedColor : notSelectedColor;
 			olc::Pixel studyColor = (type == TYPE::STUDY) ? selectedColor : notSelectedColor;

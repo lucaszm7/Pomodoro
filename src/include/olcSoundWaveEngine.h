@@ -265,7 +265,6 @@ namespace olc::sound
 			else
 			{
 				ifs.write(pData, nSize);
-				std::cout << "Reading buffer..."<< ifs.tellg() <<"\n";
 			}
 
 			struct WaveFormatHeader
