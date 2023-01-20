@@ -281,7 +281,7 @@ public:
 		if(GetKey(olc::TAB).bPressed)
 			ConsoleShow(olc::Key::ESCAPE);
 
-		if(GetKey(olc::SPACE).bReleased)
+		if(!IsConsoleShowing() && GetKey(olc::SPACE).bReleased)
 		{
 			if(status == STATUS::RESET)
 			{
@@ -311,7 +311,6 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		std::cout << totalTime << std::endl;
 		OnDraw(fElapsedTime);
 		KeyboardInput();
 
@@ -362,9 +361,9 @@ public:
 
 		if(status == STATUS::RESET)
 		{
-			if(GetKey(olc::K1).bReleased)
+			if(!IsConsoleShowing() && GetKey(olc::K1).bReleased)
 				type = TYPE::WORK;
-			if(GetKey(olc::K2).bReleased)
+			if(!IsConsoleShowing() && GetKey(olc::K2).bReleased)
 				type = TYPE::STUDY;
 			olc::Pixel selectedColor    = olc::Pixel(50, 200, 50);
 			olc::Pixel notSelectedColor = olc::Pixel(255, 255, 255, 64);
