@@ -14,9 +14,6 @@ msvc_release: $(WINPATH)/$(FILE).cpp
 	cl /EHsc /openmp:llvm /O2 /Ot /std:c++17 /arch:AVX2 $(WINPATH)/$(FILE).cpp /Fdbin\vc100.pdb /Fobin\ /Fabin\ /link /SUBSYSTEM:windows /ENTRY:mainCRTStartup /out:bin\$(FILE).exe /pdb:bin\
 
 msvc_debug: $(WINPATH)/$(FILE).cpp
-	cl /EHsc /openmp:llvm /Ot /std:c++17 /arch:AVX2 $(WINPATH)/$(FILE).cpp project.res /Fdbin\vc100.pdb /Fobin\ /Fabin\ /link /out:bin\$(FILE).exe /pdb:bin\
-
-msvc_debug_noconsole: $(WINPATH)/$(FILE).cpp
 	cl /EHsc /openmp:llvm /Ot /std:c++17 /arch:AVX2 $(WINPATH)/$(FILE).cpp project.res /Fdbin\vc100.pdb /Fobin\ /Fabin\ /link /SUBSYSTEM:windows /ENTRY:mainCRTStartup /out:bin\$(FILE).exe /pdb:bin\
 
 windows: $(WINPATH)/$(FILE).cpp

@@ -239,6 +239,8 @@ public:
 			if(!soundStartingRest.LoadAudioWaveform("", (char*)t.ptr, t.size_bytes))
 				std::cout << "Error with sound\n";
 
+		ConsoleCaptureStdOut(true);
+
 		return true;
 	}
 
@@ -276,6 +278,9 @@ public:
 	
 	void KeyboardInput()
 	{
+		if(GetKey(olc::TAB).bPressed)
+			ConsoleShow(olc::Key::ESCAPE);
+
 		if(GetKey(olc::SPACE).bReleased)
 		{
 			if(status == STATUS::RESET)
@@ -298,8 +303,15 @@ public:
 		}
 	}
 
+	bool OnConsoleCommand(const std::string& sText) override
+	{
+		std::stringstream ss;
+		return true;
+	}
+
 	bool OnUserUpdate(float fElapsedTime) override
 	{
+		std::cout << totalTime << std::endl;
 		OnDraw(fElapsedTime);
 		KeyboardInput();
 
