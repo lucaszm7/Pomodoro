@@ -6,9 +6,12 @@
 
 #include <iostream>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
 
 #include <Windows.h>
 #include "resource.h"
+#include "include/csv.hpp"
 
 #define M_PI 3.141592653589793238462643
 
@@ -101,6 +104,19 @@ struct Time
 		return Time(totalTime + other.totalTime);
 	}
 
+	inline bool operator > (const Time& other) const
+	{
+		if(this->hours == other.hours)
+		{
+			if(this->minutes == other.minutes)
+			{
+				return this->seconds > other.seconds;
+			}
+			return this->minutes > other.minutes;
+		}
+		return this->hours > other.hours;
+	}
+
 	inline void operator = (const Time& t) 
 	{
 		totalTime = t.totalTime;
@@ -136,7 +152,6 @@ struct Time
 		if(nHours < 0) nHours += 24;
 		return nHours;
 	}
-
 };
 
 inline std::ostream& operator << (std::ostream& out, const Time& tm)
@@ -161,10 +176,23 @@ enum class PROGRESS
 	REST
 };
 
+enum class TYPE
+{
+	STUDY,
+	WORK
+};
+
 std::string ToString(PROGRESS pg)
 {
 	if      (pg == PROGRESS::FOCUS) return "FOCUS";
-	else if (pg == PROGRESS::REST)  return "REST";
+	else if (pg == PROGRESS::REST)  return "REST!";
+	else                            return "";
+}
+
+std::string ToString(TYPE pg)
+{
+	if      (pg == TYPE::WORK)  return "WORK";
+	else if (pg == TYPE::STUDY) return "STUDY";
 	else                            return "";
 }
 
@@ -191,6 +219,7 @@ public:
 
 	STATUS status = STATUS::RESET;
 	PROGRESS progress = PROGRESS::FOCUS;
+	TYPE type = TYPE::WORK;
 
 	olc::sound::WaveEngine soundEngine;
 	olc::sound::Wave soundStartingFocus;
@@ -286,12 +315,13 @@ public:
 			Time progressTimer = progress == PROGRESS::FOCUS ? focusTime : restTime;
 			Time progressStart = progress == PROGRESS::FOCUS ? focusStart : restStart;
 
-			DrawString(CenterOfScreen() - olc::vi2d(ScreenWidth()/4 + radius - 40, radius + 40), ToString(progress), olc::WHITE, 4);
+			DrawString(CenterOfScreen() - olc::vi2d(ScreenWidth()/4 + radius - 40, radius + 40), ToString(progress) + " " + ToString(type), olc::WHITE, 4);
 
 			Time dif = timer - progressStart;
 			timeLeft = progressTimer - dif;
-			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 20), timeLeft.ToString(false) + " - " + progressStart.ToString(true), olc::CYAN , 2);
-			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 60), (timer - totalTimeStart).ToString(false), olc::GREEN, 2);
+			totalTime = timer - totalTimeStart;
+			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 20), timeLeft.ToString(false) + " - " + progressStart.ToString(true), olc::YELLOW , 2);
+			DrawString(CenterOfScreen() + olc::vi2d(0, - radius + 60), totalTime.ToString(false), olc::GREEN, 2);
 
 			if(timeLeft.seconds < 0)
 			{
@@ -320,6 +350,20 @@ public:
 			DrawString( CenterOfScreen() - olc::vi2d(ScreenWidth()/4 + 20, -40),"PRESS 'SPACE'", olc::Pixel(255, 255, 255, 64) , 4);			
 		}
 
+		if(status == STATUS::RESET)
+		{
+			if(GetKey(olc::K1).bReleased)
+				type = TYPE::WORK;
+			if(GetKey(olc::K2).bReleased)
+				type = TYPE::STUDY;
+			olc::Pixel selectedColor    = olc::DARK_GREEN;
+			olc::Pixel notSelectedColor = olc::Pixel(255, 255, 255, 64);
+			olc::Pixel workColor  = (type == TYPE::WORK) ? selectedColor : notSelectedColor;
+			olc::Pixel studyColor = (type == TYPE::STUDY) ? selectedColor : notSelectedColor;
+			DrawString( CenterOfScreen() - olc::vi2d(ScreenWidth()/4 + 80, 160), "1.WORK",  workColor, 4);			
+			DrawString( CenterOfScreen() - olc::vi2d(ScreenWidth()/4 - 200, 160), "2.STUDY", studyColor, 4);			
+		}
+
 		return true;
 	}
 };
@@ -327,9 +371,28 @@ public:
 int main()
 {
 	{
+		std::time_t date_started = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
 		Clock app;
 		if (app.Construct(700, 400, 1, 1)){
 			app.Start();
+		}
+
+		if(app.totalTime > Time(59, 24, 0))
+		{
+			csvfile csv("marks.csv");
+			if(!csv.alreadyExist)
+				csv << "Total Time" << "Started" << "Finished" << endrow;
+			std::time_t date_finished = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			std::string date_started_name = std::ctime(&date_started);
+			date_started_name.pop_back();
+			std::string date_finished_name = std::ctime(&date_finished);
+			date_finished_name.pop_back();
+			csv << app.totalTime;
+			csv << date_started_name;
+			csv << date_finished_name;
+			csv << ToString(app.type);
+			csv << endrow;
 		}
 	}
 	return 0;
