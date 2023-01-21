@@ -209,9 +209,9 @@ public:
 	Time totalTimeStart;
 	Time totalTime;
 
-	const Time focusTime = Time(0, 25, 0);
+	Time focusTime = Time(0, 25, 0);
 	Time focusStart;
-	const Time restTime  = Time(0, 5, 0);
+	Time restTime  = Time(0, 5, 0);
 	Time restStart;
 
 	Time timeLeft;
@@ -240,6 +240,11 @@ public:
 				std::cout << "Error with sound\n";
 
 		ConsoleCaptureStdOut(true);
+
+		std::cout << "For changing 'FOCUS' and 'REST' time use:" << std::endl;
+		std::cout << "> set [focus][rest] [time] [s][m][h]" << std::endl;
+		std::cout << "Exemple: \n";
+		std::cout << "> set rest 10 m\n";
 
 		return true;
 	}
@@ -306,6 +311,34 @@ public:
 	bool OnConsoleCommand(const std::string& sText) override
 	{
 		std::stringstream ss;
+		ss << sText;
+		std::string c1;
+		ss >> c1;
+		if(c1 == "set")
+		{
+			ss >> c1;
+			Time newTime;
+			std::string time;
+			ss >> time;
+			std::string timeMagnitude;				
+			ss >> timeMagnitude;
+
+			if(timeMagnitude == "seconds" || timeMagnitude == "s")
+				newTime = Time(atoi(time.c_str()));
+			else if(timeMagnitude == "minutes" || timeMagnitude == "m")
+				newTime = Time(atoi(time.c_str()) * 60);
+			else if(timeMagnitude == "hours" || timeMagnitude == "h")
+				newTime = Time(0, 0, atoi(time.c_str()));
+
+			if(c1 == "focus")
+				focusTime = newTime;
+			else if(c1 == "rest")
+				restTime = newTime;
+				
+			std::cout << "Focus Time: " << focusTime << "\n";
+			std::cout << "Rest Time: " << restTime << "\n";
+
+		}
 		return true;
 	}
 
@@ -357,6 +390,7 @@ public:
 		{
 			DrawString( CenterOfScreen() - olc::vi2d(ScreenWidth()/4, 40),      "P A U S E D",   olc::Pixel(255, 255, 255, 64) , 4);			
 			DrawString( CenterOfScreen() - olc::vi2d(ScreenWidth()/4 + 20, -40),"PRESS 'SPACE'", olc::Pixel(255, 255, 255, 64) , 4);			
+			DrawString(olc::vi2d(ScreenWidth() - 195, ScreenHeight() - 12), "Press 'TAB' for commands", olc::WHITE, 1);
 		}
 
 		if(status == STATUS::RESET)
