@@ -1,4 +1,4 @@
-# AED3 Bin Packing Problem - Trabalho Final
+# Pomodoro
 
 ![reset](https://user-images.githubusercontent.com/42661760/214109480-951fc2d4-aeec-4ff1-90f6-ea3f75952754.png)
 
