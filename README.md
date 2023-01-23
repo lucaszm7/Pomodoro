@@ -1,5 +1,12 @@
 # AED3 Bin Packing Problem - Trabalho Final
 
+![reset](https://user-images.githubusercontent.com/42661760/214109480-951fc2d4-aeec-4ff1-90f6-ea3f75952754.png)
+
+![studying](https://user-images.githubusercontent.com/42661760/214109502-662bf261-0452-46db-b5b7-111e9793e8c6.png)
+
+![command_line](https://user-images.githubusercontent.com/42661760/214109639-757559c1-3d1b-4b88-a0ba-b19a0d3ca965.png)
+
+
 ## Build: Linux
  1. Instale as dependências
    ```
